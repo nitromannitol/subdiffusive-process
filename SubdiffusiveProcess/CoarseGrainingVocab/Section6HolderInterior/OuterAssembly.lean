@@ -1,0 +1,173 @@
+import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBoundaryRows.OuterAssembly
+import SubdiffusiveProcess.CoarseGrainingVocab.Section6Covariance.Action
+import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderInterior.Conclusions
+
+/-!
+# Interior Hölder regularity: the outer four-conjunct assembly
+
+The frozen interior anchor `p.cutoff.Holder.regularity.interior` packages the
+pathwise conclusion four times: at the fixed cutoff `L`, uniformly over all
+cutoffs `J ≥ m`, and both of those again at every translate
+`translatePotentialSample y ω`.  This module reduces all four to the two
+sample-space packages that the interior ladder actually produces,
+
+* `InteriorCutoffPathwiseInput` — one stopping scale per `(L, m)`;
+* `InteriorCutoffUniformInput` — one stopping scale per `m`, valid for every
+  cutoff `J ≥ m` (the H7 "may take equal" reading recorded in D-011/H7).
+
+The two translate conjuncts are *free*: the sample translation is a measurable
+automorphism preserving the layer law
+(`Section6Covariance.measure_preimage_translatePotentialSample`), so composing a
+witness with it transports the stopping scale, its positivity and its Γ₁ tail
+unchanged.
+-/
+
+namespace SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderInterior
+
+open Filter MeasureTheory SubdiffusiveProcess.CoarseGrainingVocab
+open Homogenization hiding Vec
+open Homogenization.Book
+open scoped BigOperators ENNReal Topology
+
+noncomputable section
+attribute [local instance] Classical.propDecidable
+
+/-- The pathwise-and-tail package at one fixed cutoff `L`. -/
+def InteriorCutoffPathwiseInput (d : ℕ) (C : ℝ) : Prop :=
+  ∀ M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d,
+    M.delta ≤ C⁻¹ →
+    ∀ alpha ∈ Set.Icc (1 / 2 : ℝ)
+        (1 - C * M.delta * |Real.log M.delta| ^ (1 / 2 : ℝ)),
+      ∀ L m : ℕ,
+        ∃ X : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ,
+          Measurable X ∧ (∀ ω, 0 < X ω) ∧
+          (∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < X ω} ≤ ENNReal.ofReal
+            (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+              (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+          ∀ ω, ∀ (u : H1Function (openCubeSet (originCube d m)))
+              (g : Vec d → Vec d),
+            IsDivFormWeakSolutionOn (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M L ω)
+                (cube d m) u g →
+            MemHolder (cube d m) (1 / 2) g →
+            InteriorHolderRegularityConclusions M C L ω alpha m (X ω) u g
+
+/-- The cutoff-uniform pathwise-and-tail package: one stopping scale serving
+every cutoff `J ≥ m` at once. -/
+def InteriorCutoffUniformInput (d : ℕ) (C : ℝ) : Prop :=
+  ∀ M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d,
+    M.delta ≤ C⁻¹ →
+    ∀ alpha ∈ Set.Icc (1 / 2 : ℝ)
+        (1 - C * M.delta * |Real.log M.delta| ^ (1 / 2 : ℝ)),
+      ∀ m : ℕ,
+        ∃ Xuncut : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ,
+          Measurable Xuncut ∧ (∀ ω, 0 < Xuncut ω) ∧
+          (∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < Xuncut ω} ≤ ENNReal.ofReal
+            (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+              (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+          ∀ J : ℕ, m ≤ J → ∀ ω,
+            ∀ (u : H1Function (openCubeSet (originCube d m)))
+                (g : Vec d → Vec d),
+              IsDivFormWeakSolutionOn (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M J ω)
+                  (cube d m) u g →
+              MemHolder (cube d m) (1 / 2) g →
+              InteriorHolderRegularityConclusions M C J ω alpha m (Xuncut ω) u g
+
+/-- Composition with a sample translation preserves measurability, positivity
+and the Γ₁ tail of a stopping scale. -/
+theorem translate_stoppingScale {d : ℕ}
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d) (C alpha : ℝ)
+    (X : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ) (y : Vec d)
+    (hmeas : Measurable X) (hpos : ∀ ω, 0 < X ω)
+    (htail : ∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < X ω} ≤ ENNReal.ofReal
+      (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+        (C * M.delta ^ 2 * |Real.log M.delta|)))) :
+    Measurable (fun ω ↦ X (translatePotentialSample y ω)) ∧
+      (∀ ω, 0 < X (translatePotentialSample y ω)) ∧
+      ∀ k : ℕ, 0 < k →
+        M.P.toMeasure {ω | k < X (translatePotentialSample y ω)} ≤
+          ENNReal.ofReal
+            (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+              (C * M.delta ^ 2 * |Real.log M.delta|))) := by exact SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBoundaryRows.translate_stoppingScale (d := d) (M := M) (C := C) (alpha := alpha) (X := X) (y := y) (hmeas := hmeas) (hpos := hpos) (htail := htail)
+
+/-- **Outer assembly.**  The two sample-space packages produce the exact frozen
+interior statement, translates and all. -/
+theorem exists_cutoffHolderRegularityInterior_of_inputs
+    (d : ℕ) (C : ℝ) (hC : 0 < C)
+    (hpath : InteriorCutoffPathwiseInput d C)
+    (huniform : InteriorCutoffUniformInput d C) :
+    ∃ C : ℝ, 0 < C ∧ ∀ M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d,
+      (M.delta ≤ C⁻¹ →
+      ∀ alpha ∈ Set.Icc (1 / 2 : ℝ)
+          (1 - C * M.delta * |Real.log M.delta| ^ (1 / 2 : ℝ)),
+        ∀ L m : ℕ,
+          (∃ X : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ,
+            Measurable X ∧ (∀ ω, 0 < X ω) ∧
+            (∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < X ω} ≤ ENNReal.ofReal
+              (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+                (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+            ∀ ω, ∀ (u : H1Function (openCubeSet (originCube d m)))
+                (g : Vec d → Vec d),
+              IsDivFormWeakSolutionOn (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M L ω)
+                  (cube d m) u g →
+              MemHolder (cube d m) (1 / 2) g →
+              InteriorHolderRegularityConclusions M C L ω alpha m (X ω) u g) ∧
+          (m ≤ L → ∃ Xuncut : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ,
+            Measurable Xuncut ∧ (∀ ω, 0 < Xuncut ω) ∧
+            (∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < Xuncut ω} ≤ ENNReal.ofReal
+              (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+                (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+            ∀ J : ℕ, m ≤ J → ∀ ω,
+              ∀ (u : H1Function (openCubeSet (originCube d m)))
+                  (g : Vec d → Vec d),
+                IsDivFormWeakSolutionOn (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M J ω)
+                    (cube d m) u g →
+                MemHolder (cube d m) (1 / 2) g →
+                InteriorHolderRegularityConclusions M C J ω alpha m (Xuncut ω) u g) ∧
+          ∀ y : Vec d,
+            (∃ Xy : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ,
+              Measurable Xy ∧ (∀ ω, 0 < Xy ω) ∧
+              (∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < Xy ω} ≤ ENNReal.ofReal
+                (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+                  (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+              ∀ ω, ∀ (u : H1Function (openCubeSet (originCube d m)))
+                  (g : Vec d → Vec d),
+                IsDivFormWeakSolutionOn
+                    (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M L
+                      (translatePotentialSample y ω))
+                    (cube d m) u g →
+                MemHolder (cube d m) (1 / 2) g →
+                InteriorHolderRegularityConclusions M C L (translatePotentialSample y ω)
+                  alpha m (Xy ω) u g) ∧
+            (m ≤ L → ∃ XuncutY : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d → ℕ,
+              Measurable XuncutY ∧ (∀ ω, 0 < XuncutY ω) ∧
+              (∀ k : ℕ, 0 < k → M.P.toMeasure {ω | k < XuncutY ω} ≤ ENNReal.ofReal
+                (C * Real.exp (-((1 - alpha) ^ 2 * max ((k : ℝ) - C) 0) /
+                  (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+              ∀ J : ℕ, m ≤ J → ∀ ω,
+                ∀ (u : H1Function (openCubeSet (originCube d m)))
+                    (g : Vec d → Vec d),
+                  IsDivFormWeakSolutionOn
+                      (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M J
+                        (translatePotentialSample y ω))
+                      (cube d m) u g →
+                  MemHolder (cube d m) (1 / 2) g →
+                  InteriorHolderRegularityConclusions M C J (translatePotentialSample y ω)
+                    alpha m (XuncutY ω) u g)) := by
+  refine ⟨C, hC, ?_⟩
+  intro M hdelta alpha halpha L m
+  obtain ⟨X, hXmeas, hXpos, hXtail, hXpath⟩ := hpath M hdelta alpha halpha L m
+  obtain ⟨Xu, hXumeas, hXupos, hXutail, hXupath⟩ := huniform M hdelta alpha halpha m
+  refine ⟨⟨X, hXmeas, hXpos, hXtail, hXpath⟩,
+    fun _ ↦ ⟨Xu, hXumeas, hXupos, hXutail, hXupath⟩, fun y ↦ ⟨?_, fun _ ↦ ?_⟩⟩
+  · obtain ⟨hmeas, hpos, htail⟩ :=
+      translate_stoppingScale M C alpha X y hXmeas hXpos hXtail
+    exact ⟨fun ω ↦ X (translatePotentialSample y ω), hmeas, hpos, htail,
+      fun ω ↦ hXpath (translatePotentialSample y ω)⟩
+  · obtain ⟨hmeas, hpos, htail⟩ :=
+      translate_stoppingScale M C alpha Xu y hXumeas hXupos hXutail
+    exact ⟨fun ω ↦ Xu (translatePotentialSample y ω), hmeas, hpos, htail,
+      fun J hJ ω ↦ hXupath J hJ (translatePotentialSample y ω)⟩
+
+end
+
+end SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderInterior

@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this formalization, please cite it as below."
+title: "Subdiffusive process: a Lean 4 formalization of anomalous scaling limits in a log-correlated potential"
+type: software
+abstract: >-
+  A Lean 4 and Mathlib formalization of process convergence, quantitative
+  homogenization and anomalous Hölder regularity for a Brownian particle in
+  a log-correlated random potential. Release-candidate verification is pending.
+authors:
+  - family-names: Armstrong
+    given-names: Scott
+  - family-names: Bou-Rabee
+    given-names: Ahmed
+  - family-names: Kuusi
+    given-names: Tuomo
+keywords:
+  - Lean
+  - mathlib
+  - formal verification
+  - subdiffusion
+  - stochastic homogenization
+  - log-correlated fields
+license: Apache-2.0
+references:
+  - type: article
+    title: "Anomalous scaling limit of a Brownian particle in a log-correlated potential"
+    authors:
+      - family-names: Armstrong
+        given-names: Scott
+      - family-names: Bou-Rabee
+        given-names: Ahmed
+      - family-names: Kuusi
+        given-names: Tuomo
+    notes: "The paper formalized by this repository; sources are bundled under paper/."

@@ -1,0 +1,5 @@
+import SubdiffusiveProcess.MainTheorems
+
+#print axioms SubdiffusiveProcess.process_convergence
+#print axioms SubdiffusiveProcess.quantitative_homogenization
+#print axioms SubdiffusiveProcess.anomalous_holder_regularity

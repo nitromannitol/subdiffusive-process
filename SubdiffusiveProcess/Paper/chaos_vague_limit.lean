@@ -1,0 +1,83 @@
+import SubdiffusiveProcess.Main.BilateralField
+import SubdiffusiveProcess.Main.WeightedChaosCutoff
+import SubdiffusiveProcess.Main.ChaosCutoff
+import SubdiffusiveProcess.Main.ConditionalFineFiltration
+import SubdiffusiveProcess.Main.ChaosSampleLaw
+import SubdiffusiveProcess.Main.InfraredCharacterization
+import SubdiffusiveProcess.Probability.GMCFieldLaws
+import SubdiffusiveProcess.Probability.CubeMassMartingale
+import SubdiffusiveProcess.Geometry.Cube
+import Mathlib.MeasureTheory.Function.LpSeminorm.Basic
+import Mathlib.Probability.Martingale.Basic
+import SubdiffusiveProcess.Lane1.GrowthCutoff
+import SubdiffusiveProcess.Main.MeasuresConvergeLocally
+import Mathlib.MeasureTheory.Integral.RieszMarkovKakutani.Real
+import SubdiffusiveProcess.Lane1.VagueLimit
+
+open Filter MeasureTheory ProbabilityTheory Topology
+open SubdiffusiveProcess
+open scoped CompactlySupported ENNReal NNReal BigOperators
+
+set_option autoImplicit false
+set_option relaxedAutoImplicit false
+
+noncomputable section
+namespace Paper
+
+
+
+theorem chaos_vague_limit
+    {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (hd : 2 ≤ d)
+    (epsilon : ℝ) (hepsilon : epsilon ∈ Set.Ioo 0 1)
+    (p : ℕ) (hp : (d : ℝ) < p * epsilon)
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d)
+    (H : BilateralField d → C(SpatialCoordinates d, ℝ))
+    (hH : InfraredCharacterization M H)
+    (hmart : ∀ f : C_c(SpatialCoordinates d, ℝ), (∀ x, 0 ≤ f x) →
+      Martingale (fun N omega => ∫ x, f x ∂(weightedChaosCutoff M H N omega))
+        (conditionalFineFiltration H hH.1) (chaosSampleLaw M).toMeasure)
+    (hgrowth : ∀ Rset : Set (SpatialCoordinates d), Bornology.IsBounded Rset →
+      ∃ Kmu : BilateralField d → ℝ,
+        MemLp Kmu p (chaosSampleLaw M).toMeasure ∧
+        ∀ᵐ omega ∂(chaosSampleLaw M).toMeasure,
+          0 ≤ Kmu omega ∧
+          ∀ N x, x ∈ Rset → ∀ r, 0 < r → r ≤ 1 →
+            weightedChaosCutoff M H N omega (Metric.ball x r) ≤
+              ENNReal.ofReal (Kmu omega * r ^ ((d : ℝ) - epsilon))) :
+    ∃ mu : BilateralField d → Measure (SpatialCoordinates d),
+      Measurable mu ∧
+      (∀ omega, IsLocallyFiniteMeasure (mu omega)) ∧
+      (∀ (omega : BilateralField d) (U : Set (SpatialCoordinates d)), IsOpen U →
+        ∀ c : ℝ≥0∞, c < mu omega U →
+          ∃ f : C_c(SpatialCoordinates d, ℝ), (∀ x, 0 ≤ f x ∧ f x ≤ 1) ∧
+            tsupport (f : SpatialCoordinates d → ℝ) ⊆ U ∧
+            c < ENNReal.ofReal (∫ x, f x ∂(mu omega))) ∧
+      ∀ᵐ omega ∂(chaosSampleLaw M).toMeasure,
+        MeasuresConvergeLocally
+          (fun N ↦ weightedChaosCutoff M H N omega) (mu omega) := by
+  refine SubdiffusiveProcess.chaos_vague_limit_of_cube_limits M H hH ?_
+  have h1 : ∀ᵐ omega ∂(chaosSampleLaw M).toMeasure,
+      ∀ (j : ℕ) (k : Fin d → ℤ), ∃ L : ℝ, Filter.Tendsto (fun N =>
+        ((weightedChaosCutoff M H N omega)
+          ((centeredCube (SubdiffusiveProcess.tileCenter j k)
+            ((3 : ℝ) ^ (-(j : ℤ))) (SubdiffusiveProcess.zpow_neg_pos j)) :
+              Set (SpatialCoordinates d))).toReal) Filter.atTop (nhds L) := by
+    rw [ae_all_iff]
+    intro j
+    rw [ae_all_iff]
+    intro k
+    exact SubdiffusiveProcess.chaos_cube_ae_tendsto hd M H hH _ _ _
+  have h2 : ∀ᵐ omega ∂(chaosSampleLaw M).toMeasure,
+      ∀ n : ℕ, ∃ L : ℝ, Filter.Tendsto (fun N =>
+        ((weightedChaosCutoff M H N omega)
+          ((centeredCube (0 : SpatialCoordinates d) (2 * ((n : ℝ) + 4))
+            (by positivity)) : Set (SpatialCoordinates d))).toReal)
+        Filter.atTop (nhds L) := by
+    rw [ae_all_iff]
+    intro n
+    exact SubdiffusiveProcess.chaos_cube_ae_tendsto hd M H hH _ _ _
+  filter_upwards [h1, h2] with omega ha hb
+  exact ⟨ha, hb⟩
+
+end Paper

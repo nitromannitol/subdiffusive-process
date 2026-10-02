@@ -1,0 +1,179 @@
+import SubdiffusiveProcess.CoarseGrainingVocab.AhomStarCharacterization
+import SubdiffusiveProcess.CoarseGrainingVocab.DykhneFiniteVolume
+
+
+
+
+namespace SubdiffusiveProcess.CoarseGrainingVocab
+
+open Filter MeasureTheory Homogenization Homogenization.Book
+open scoped Matrix.Norms.Elementwise
+
+noncomputable section
+
+private abbrev Sample2 := SubdiffusiveProcess.Frozen.Assumptions.PotentialSample 2
+
+/-- The planar reciprocal sample transform attached to the quarter turn. -/
+private def planarDualSample : Sample2 → Sample2 :=
+  planarDualPotentialSample planarQuarterTurn planarQuarterTurn_isSignedPermutation
+
+private theorem planarQuarterTurn_double_conj (A : Mat 2) :
+    matTranspose planarQuarterTurn *
+        (matTranspose planarQuarterTurn * A * planarQuarterTurn) *
+      planarQuarterTurn = A := by exact SubdiffusiveProcess.CoarseGrainingVocab.aux_dedup_d223_planarQuarterTurn_double_conjugation (A := A)
+
+/-- The quarter-turned raw cutoff is the raw cutoff of the rotated sample, so
+it inherits a uniform ellipticity package on every bounded domain. -/
+private def aCutoffRotatedCoeffOnData
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel 2) (m : ℕ) (omega : Sample2)
+    (U : Ch02.Domain 2) :
+    ScalarCoeffOnData U
+      (fun x => SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m omega
+        (matVecMul planarQuarterTurn x)) :=
+  (funext (aCutoff_rotatePotentialSample M m planarQuarterTurn
+      planarQuarterTurn_isSignedPermutation omega) :
+    SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m
+        (rotatePotentialSample planarQuarterTurn
+          planarQuarterTurn_isSignedPermutation omega) =
+      fun x => SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m omega
+        (matVecMul planarQuarterTurn x)) ▸
+    aCutoffCoeffOnData M m
+      (rotatePotentialSample planarQuarterTurn
+        planarQuarterTurn_isSignedPermutation omega) U
+
+/-- Samplewise planar Dykhne identity for the **untruncated** GMC cutoff on a
+centered cube.  The only analytic premise is the weak zero-normal
+stream-function converse; the physical rotation carried by
+`planarDualPotentialSample` cancels the two matrix conjugations coming from
+deterministic reciprocal duality. -/
+theorem randomAMatrix_planarDualPotentialSample_of_streamFunction
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel 2) (m : ℕ) (n : ℤ)
+    (hstream : PlanarZeroNormalStreamFunctionOn (openCubeSet (originCube 2 n)))
+    (omega : Sample2) :
+    randomAMatrix M m (Ch02.cubeDomain (originCube 2 n))
+        (planarDualPotentialSample planarQuarterTurn
+          planarQuarterTurn_isSignedPermutation omega) =
+      planarLambda M m ^ 2 •
+        (randomAStarMatrix M m (Ch02.cubeDomain (originCube 2 n)) omega)⁻¹ := by
+  let U := Ch02.cubeDomain (originCube 2 n)
+  let T := planarDualPotentialSample planarQuarterTurn
+    planarQuarterTurn_isSignedPermutation
+  let b : Vec 2 → ℝ := SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m omega
+  let bRot : Vec 2 → ℝ := fun x => b (matVecMul planarQuarterTurn x)
+  let hBase : ScalarCoeffOnData U b := aCutoffCoeffOnData M m omega U
+  let hRot : ScalarCoeffOnData U bRot := aCutoffRotatedCoeffOnData M m omega U
+  let hSampleDual :
+      ScalarCoeffOnData U (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m (T omega)) :=
+    aCutoffCoeffOnData M m (T omega) U
+  have hdualEq : SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m (T omega) =
+      planarReciprocalScalarField (planarLambda M m) bRot := by
+    funext x
+    exact aCutoff_planarDualPotentialSample M m planarQuarterTurn
+      planarQuarterTurn_isSignedPermutation omega x
+  let hDual : ScalarCoeffOnData U
+      (planarReciprocalScalarField (planarLambda M m) bRot) := hdualEq ▸ hSampleDual
+  have hdet := aMatrix_planarReciprocal_originCube_of_planarZeroNormalStreamFunctionOn
+    n hstream (planarLambda_pos M m)
+    (fun x => SubdiffusiveProcess.Frozen.Assumptions.aCutoff_pos M m omega
+      (matVecMul planarQuarterTurn x)) hRot hDual
+  have hcov := aStarMatrix_inv_planarQuarterTurn_originCube hBase hRot
+  change aMatrix U hSampleDual.toCoeffOn =
+    planarLambda M m ^ 2 • (aStarMatrix U hBase.toCoeffOn)⁻¹
+  have hleft : aMatrix U hSampleDual.toCoeffOn = aMatrix U hDual.toCoeffOn := by
+    apply Ch02.aCoarse_eq_ofAEEq
+    filter_upwards with x
+    ext i j
+    change scalarMatrix (SubdiffusiveProcess.Frozen.Assumptions.aCutoff M m (T omega) x) i j =
+      scalarMatrix (planarReciprocalScalarField (planarLambda M m) bRot x) i j
+    rw [congrFun hdualEq x]
+  rw [hleft, hdet, hcov, planarQuarterTurn_double_conj]
+
+/-- Annealed planar Dykhne identity for the untruncated GMC cutoff on a
+centered cube.  No integrability debt remains: the primal coarse observable is
+already known to be Bochner integrable. -/
+theorem abar_eq_planarLambda_sq_smul_abarStarInv_of_streamFunction
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel 2) (m : ℕ) (n : ℤ)
+    (hstream : PlanarZeroNormalStreamFunctionOn (openCubeSet (originCube 2 n))) :
+    abar M m (Ch02.cubeDomain (originCube 2 n)) =
+      planarLambda M m ^ 2 •
+        abarStarInv M m (Ch02.cubeDomain (originCube 2 n)) := by
+  let U := Ch02.cubeDomain (originCube 2 n)
+  let T : Sample2 → Sample2 := planarDualPotentialSample planarQuarterTurn
+    planarQuarterTurn_isSignedPermutation
+  let A : Sample2 → Mat 2 := randomAMatrix M m U
+  let B : Sample2 → Mat 2 := fun omega => (randomAStarMatrix M m U omega)⁻¹
+  have hA : Integrable A M.P.toMeasure := integrable_randomAMatrix M m U
+  have hinvariant : ∫ omega, A (T omega) ∂M.P.toMeasure =
+      ∫ omega, A omega ∂M.P.toMeasure :=
+    integral_comp_eq_of_map_eq
+      (measurable_planarDualPotentialSample planarQuarterTurn
+        planarQuarterTurn_isSignedPermutation)
+      (potentialSequenceLaw_planarDual M planarQuarterTurn
+        planarQuarterTurn_isSignedPermutation) A hA.aestronglyMeasurable
+  calc
+    abar M m U = ∫ omega, A omega ∂M.P.toMeasure := rfl
+    _ = ∫ omega, A (T omega) ∂M.P.toMeasure := hinvariant.symm
+    _ = ∫ omega, planarLambda M m ^ 2 • B omega ∂M.P.toMeasure := by
+      refine MeasureTheory.integral_congr_ae (Filter.Eventually.of_forall fun omega => ?_)
+      exact randomAMatrix_planarDualPotentialSample_of_streamFunction M m n hstream omega
+    _ = planarLambda M m ^ 2 • ∫ omega, B omega ∂M.P.toMeasure := by
+      rw [MeasureTheory.integral_smul]
+    _ = planarLambda M m ^ 2 • abarStarInv M m U := rfl
+
+/-- Infinite-volume planar self-duality: the scalar homogenized coefficient
+squares to `lambda_m^2`.  The primal limit is
+`tendsto_abar_originCube_ahom`; the starred limit is
+`tendsto_abarStarInv_originCube`. -/
+theorem ahom_mul_ahom_eq_planarLambda_sq_of_streamFunction
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel 2) (m : ℕ)
+    (hstream : ∀ n : ℤ,
+      PlanarZeroNormalStreamFunctionOn (openCubeSet (originCube 2 n)))
+    (hpos : 0 < ahom M m) :
+    ahom M m * ahom M m = planarLambda M m ^ 2 := by
+  have hprimal : Tendsto (fun k : ℕ =>
+      abar M m (Ch02.cubeDomain (originCube 2 (k : ℤ))))
+      atTop (nhds (ahom M m • (1 : Mat 2))) :=
+    tendsto_abar_originCube_ahom M m
+  have hstar : Tendsto (fun k : ℕ =>
+      abar M m (Ch02.cubeDomain (originCube 2 (k : ℤ))))
+      atTop (nhds (planarLambda M m ^ 2 • ((ahom M m)⁻¹ • (1 : Mat 2)))) := by
+    refine ((tendsto_abarStarInv_originCube M m).const_smul
+      (planarLambda M m ^ 2)).congr' ?_
+    filter_upwards with k
+    exact (abar_eq_planarLambda_sq_smul_abarStarInv_of_streamFunction
+      M m (k : ℤ) (hstream (k : ℤ))).symm
+  have hmat : ahom M m • (1 : Mat 2) =
+      planarLambda M m ^ 2 • ((ahom M m)⁻¹ • (1 : Mat 2)) :=
+    tendsto_nhds_unique hprimal hstar
+  have hentry := congrFun (congrFun hmat 0) 0
+  have hscalar : ahom M m = planarLambda M m ^ 2 * (ahom M m)⁻¹ := by
+    simpa [Matrix.one_apply] using hentry
+  calc
+    ahom M m * ahom M m =
+        planarLambda M m ^ 2 * (ahom M m)⁻¹ * ahom M m := by rw [← hscalar]
+    _ = planarLambda M m ^ 2 := by
+      field_simp
+
+
+
+theorem ahom_eq_planarLambda_of_streamFunction
+    (M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel 2) (m : ℕ)
+    (hstream : ∀ n : ℤ,
+      PlanarZeroNormalStreamFunctionOn (openCubeSet (originCube 2 n)))
+    (hpos : 0 < ahom M m) :
+    ahom M m = planarLambda M m := by
+  have hsq := ahom_mul_ahom_eq_planarLambda_sq_of_streamFunction M m hstream hpos
+  have hlam := planarLambda_pos M m
+  have hfactor :
+      (ahom M m - planarLambda M m) * (ahom M m + planarLambda M m) = 0 := by
+    have hexpand :
+        (ahom M m - planarLambda M m) * (ahom M m + planarLambda M m) =
+          ahom M m * ahom M m - planarLambda M m ^ 2 := by ring
+    rw [hexpand, hsq, sub_self]
+  rcases mul_eq_zero.mp hfactor with h | h
+  · linarith
+  · linarith
+
+end
+
+end SubdiffusiveProcess.CoarseGrainingVocab

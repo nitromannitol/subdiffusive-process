@@ -1,0 +1,8 @@
+import SubdiffusiveProcess.CoarseGrainingVocab.Section6DerivedSupport
+
+/-!
+# Section 6 vocabulary facade
+
+This import exposes the section 6 mechanical layer and every frozen
+meaning-carrying definition.
+-/

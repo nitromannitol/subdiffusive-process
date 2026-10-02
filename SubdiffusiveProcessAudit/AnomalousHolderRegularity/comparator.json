@@ -1,0 +1,13 @@
+{
+  "challenge_module": "SubdiffusiveProcessAudit.AnomalousHolderRegularity.Challenge",
+  "solution_module": "SubdiffusiveProcessAudit.AnomalousHolderRegularity.Solution",
+  "theorem_names": [
+    "SubdiffusiveProcessAudit.AnomalousHolderRegularity.theoremC"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "enable_nanoda": true
+}

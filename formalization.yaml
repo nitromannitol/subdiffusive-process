@@ -1,0 +1,123 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: "v0.4"
+
+project:
+  name: "subdiffusive-process"
+  description: >-
+    A Lean 4 formalization of the scaling limit of a Brownian particle in a
+    log-correlated potential, quantitative homogenization of its elliptic
+    operator and anomalous Hölder regularity. The development builds on
+    Mathlib, CoarseGraining and MarkovProcess.
+  authors:
+    - "Scott Armstrong"
+    - "Ahmed Bou-Rabee"
+    - "Tuomo Kuusi"
+  license: "Apache-2.0"
+  responsible_maintainers:
+    - "Scott Armstrong"
+
+classification:
+  arxiv: ["math.PR", "math.AP"]
+  msc2020: ["60K37", "35R60", "82B28"]
+
+sources:
+  - title: "Anomalous scaling limit of a Brownian particle in a log-correlated potential"
+    authors:
+      - "Scott Armstrong"
+      - "Ahmed Bou-Rabee"
+      - "Tuomo Kuusi"
+    type: "paper"
+    relationship: "formalizes"
+    location: "paper/"
+    note: >-
+      The authors authorized inclusion of the live paper sources, bibliography
+      and figures. The shipped analytic-construction paper with revised
+      statement wording is pinned to c79e174c2d28026ed7b1cec31ab86a6f574164a2. Final paper-to-Lean alignment
+      against the completed toolchain port remains under review.
+    license: "unknown"
+    author_endorsement: "participated"
+
+related_formalizations:
+  - id: "https://github.com/scottnarmstrong/CoarseGraining"
+    relationship: "builds-on"
+    note: "Pinned analytic and stochastic-homogenization dependency."
+  - id: "https://github.com/scottnarmstrong/MarkovProcess"
+    relationship: "builds-on"
+    note: "Pinned Markov-process dependency."
+
+status:
+  scope: >-
+    Private Lean v4.26 preview exposing Theorems A, B and C in MainTheorems, together
+    with their supporting development and further paper results. The exact
+    exported scope, completeness counts, standalone build, axiom dependencies
+    and comparator outcomes are pending verification. This metadata must be
+    updated with measured counts before Palomar submission.
+  # Code-only scan of the exported production library; builds are reported separately.
+  sorry_count: 0
+  sorry_count_scope: "production library only"
+  sorry_in_definitions: 0
+  axioms: ["propext", "Classical.choice", "Quot.sound"]
+
+# These record the known release-preparation assistance, not a complete model
+# or cost census of the earlier proof development.
+automation:
+  methods:
+    - method: "agent"
+      models: ["gpt-6.1-sol"]
+      framework: "Codex"
+      tool_setup: >-
+        AI-assisted release preparation under human direction. The target
+        preview toolchain is Lean v4.26.0 with Mathlib at the same version, and
+        CoarseGraining and MarkovProcess at fixed revisions. Separate draft
+        workflows run the pinned comparator and the bundled Palomar kernels.
+      cost:
+        wall_time: "not tracked"
+        spend_usd: "not tracked"
+        hardware: "local Linux machine"
+      prompting_notes: "Preserve the approved mathematics and expose its exact statements."
+  spend_usd: "not tracked"
+  notes: >-
+    The proof development used additional AI assistance; a complete model and
+    cost disclosure has not yet been confirmed. Release preparation, porting
+    and proof verification are distinct activities. No successful release
+    verification run is claimed by this candidate metadata.
+
+fidelity:
+  divergences: >-
+    The scaling-limit theorem concerns the continuous Feller diffusion
+    constructed from weak elliptic resolvents. Its identification with the
+    Brownian-driven SDE is proved in the paper and is not formalized.
+    Final review of the exported statements and definitions against the
+    included paper is pending. No assertion of absence of divergences is made
+    before that review.
+
+review:
+  status: "release candidate; verification pending"
+  reviewers: []
+  notes: >-
+    The authors have confirmed the paper title, Lean authors and inclusion of
+    the paper sources. Standalone compilation, axiom audits, independent
+    kernel checks and Palomar release sign-off remain outstanding. The author authorized the private preview push before standalone compilation.
+
+alignment:
+  namespace: "SubdiffusiveProcess"
+  statements:
+    - source: "Theorem A"
+      lean: "SubdiffusiveProcess.process_convergence"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "verification pending"
+      note: "Comparator pair: SubdiffusiveProcessAudit/ProcessConvergence/."
+    - source: "Theorem B"
+      lean: "SubdiffusiveProcess.quantitative_homogenization"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "verification pending"
+      note: "Comparator pair: SubdiffusiveProcessAudit/QuantitativeHomogenization/."
+    - source: "Theorem C"
+      lean: "SubdiffusiveProcess.anomalous_holder_regularity"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "verification pending"
+      note: "Comparator pair: SubdiffusiveProcessAudit/AnomalousHolderRegularity/."
+
+acknowledgements: >-
+  Lean 4, Mathlib, Lake, CoarseGraining, MarkovProcess, leanprover/comparator,
+  NanoDa and con-ron. Funding acknowledgements are to be confirmed by the authors.

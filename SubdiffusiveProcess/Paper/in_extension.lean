@@ -1,0 +1,76 @@
+import SubdiffusiveProcess.Main.OriginalGridResponseConvolution
+import SubdiffusiveProcess.Main.CutoffCoefficient
+import SubdiffusiveProcess.Main.CubeNegativeL2Norm
+import SubdiffusiveProcess.Main.HalfFractionalOrder
+import SubdiffusiveProcess.Main.CubeFractionalL2Norm
+import SubdiffusiveProcess.Sobolev.BoundaryEnergy
+import SubdiffusiveProcess.Sobolev.FoldDiscounts
+import SubdiffusiveProcess.Sobolev.LoadApproximation
+import SubdiffusiveProcess.Sobolev.EvenReflectionEquation
+import SubdiffusiveProcess.Sobolev.DirichletResponse
+import SubdiffusiveProcess.Sobolev.AffineResponses
+import SubdiffusiveProcess.Probability.GMCFieldLaws
+import SubdiffusiveProcess.CoarseGrainingVocab.Core
+import SubdiffusiveProcess.CoarseGrainingVocab.Section6SupportBase
+import SubdiffusiveProcess.Frozen.Section6.Defs.GoodEvent
+import SubdiffusiveProcess.Frozen.Section6.Defs.HolderRegularityConclusions
+import Homogenization.Book.Ch02.Theorems.SymmetricDirichletNeumann
+import SubdiffusiveProcess.Main.ChaosSampleLaw
+import SubdiffusiveProcess.Main.InfraredCharacterization
+import SubdiffusiveProcess.Lane4.Carriers
+import SubdiffusiveProcess.Paper.in_J
+
+open MeasureTheory Set TopologicalSpace Metric
+open scoped ENNReal NNReal BigOperators ContDiff
+open SubdiffusiveProcess
+open SubdiffusiveProcess.Lane4
+
+set_option autoImplicit false
+set_option relaxedAutoImplicit false
+
+noncomputable section
+namespace Paper
+
+
+
+structure in_extension (d : ℕ) (hd : 2 ≤ d) (E : in_J d) where
+  C : ℝ
+  C_pos : 0 < C
+  bound : ∀ (z : SpatialCoordinates d) (m : ℕ) (hr : (0 : ℝ) < 3 ^ m)
+      (a : PositiveCoefficient (centeredCube z ((3 : ℝ) ^ m) hr))
+      (s : ℝ) (hs : s ∈ Set.Ioo (0 : ℝ) 1)
+      -- the source datum `g ∈ H^s(𝕔_m; ℝ^d)` of `−∇·a∇v = ∇·g`
+      (g : HilbertGradient (centeredCube z ((3 : ℝ) ^ m) hr)),
+      cubeFractionalL2Seminorm hd z ((3 : ℝ) ^ m) hr ⟨s, hs.1, hs.2⟩
+          (fun i => g i) ≠ ⊤ →
+      -- the boundary datum `h ∈ H^{1+s}(𝕔_m)` and the solution `v ∈ H^1(𝕔_m)`
+      ∀ (hDatum v : weakSobolevGraph (centeredCube z ((3 : ℝ) ^ m) hr))
+        (hhfin : cubeFractionalL2Seminorm hd z ((3 : ℝ) ^ m) hr ⟨s, hs.1, hs.2⟩
+          (fun i => sobolevGradient (hDatum : SobolevData _) i) ≠ ⊤),
+      -- `v` solves `−∇·a∇v = ∇·g` weakly
+      (∀ φ : killedSobolevGraph (centeredCube z ((3 : ℝ) ^ m) hr),
+        sobolevCoefficientForm a (v : SobolevData _) (φ : SobolevData _) =
+          -inner ℝ g
+            (subspaceGradient
+              (killedSobolevGraph (centeredCube z ((3 : ℝ) ^ m) hr)) φ)) →
+      -- `v = h` on `∂𝕔_m`
+      ((v : SobolevData (centeredCube z ((3 : ℝ) ^ m) hr)) -
+          (hDatum : SobolevData (centeredCube z ((3 : ℝ) ^ m) hr))) ∈
+        killedSobolevGraph (centeredCube z ((3 : ℝ) ^ m) hr) →
+      normalizedEnergyNorm a
+          (centeredCube z ((3 : ℝ) ^ m) hr).isOpen.measurableSet
+          (sobolevGradient (v : SobolevData _)) ≤
+        C * s ^ (-3 : ℝ) *
+            (E.lam z ((3 : ℝ) ^ m) hr a z ((3 : ℝ) ^ m) (s / 2) 2) ^ (-(1 / 2) : ℝ) *
+            (3 : ℝ) ^ (s * (m : ℝ)) *
+            Real.sqrt (cubeFractionalVecSeminormSq hd z ((3 : ℝ) ^ m) hr ⟨s, hs.1, hs.2⟩
+              (fun i => g i)) +
+          C * s ^ (-(3 / 2) : ℝ) *
+            (E.Lam z ((3 : ℝ) ^ m) hr a z ((3 : ℝ) ^ m) (s / 2) 2) ^ ((1 / 2) : ℝ) *
+            (3 : ℝ) ^ (s * (m : ℝ)) *
+            cubeFractionalL2Norm hd z ((3 : ℝ) ^ m) hr ⟨s, hs.1, hs.2⟩
+              ⟨fun i => sobolevGradient (hDatum : SobolevData (centeredCube z ((3 : ℝ) ^ m) hr)) i,
+                lt_top_iff_ne_top.2 hhfin⟩
+
+end Paper
+

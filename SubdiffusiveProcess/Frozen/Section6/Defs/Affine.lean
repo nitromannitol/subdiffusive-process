@@ -1,0 +1,8 @@
+import SubdiffusiveProcess.CoarseGrainingVocab.Section6SupportBase
+
+/-- A scalar affine function on the paper's vector carrier. -/
+
+structure SubdiffusiveProcess.CoarseGrainingVocab.Affine (d : ℕ) where
+  constant : ℝ
+  slope : SubdiffusiveProcess.CoarseGrainingVocab.Vec d
+

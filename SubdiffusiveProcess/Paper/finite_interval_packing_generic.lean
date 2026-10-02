@@ -1,0 +1,570 @@
+import SubdiffusiveProcess.Lane4.Carriers
+import SubdiffusiveProcess.Lane3.Subdivision
+import SubdiffusiveProcess.Main.ChaosSampleLaw
+import SubdiffusiveProcess.Main.InfraredCharacterization
+import SubdiffusiveProcess.Sobolev.DirichletResponse
+import SubdiffusiveProcess.Lane2.BoundaryResponse
+import SubdiffusiveProcess.Probability.FiniteBranchUnion
+import Mathlib.Tactic
+import SubdiffusiveProcess.Paper.lem_finite_good_cell
+import SubdiffusiveProcess.Paper.finite_response_ramp
+import SubdiffusiveProcess.Paper.lem_rare_tests
+import SubdiffusiveProcess.Paper.lem_finite_trace_tests
+import SubdiffusiveProcess.Paper.lem_branch
+import SubdiffusiveProcess.Paper.in_source_independence
+import SubdiffusiveProcess.Paper.finite_interval_packing_witness_union
+import SubdiffusiveProcess.Paper.finite_interval_packing_prefix_entropy
+import SubdiffusiveProcess.Paper.finite_interval_packing_branch_entropy
+import SubdiffusiveProcess.Paper.finite_interval_packing
+
+set_option autoImplicit false
+set_option relaxedAutoImplicit false
+
+open MeasureTheory ProbabilityTheory Filter Set TopologicalSpace Topology
+open SubdiffusiveProcess SubdiffusiveProcess.Lane3 SubdiffusiveProcess.Lane4
+open scoped ENNReal NNReal BigOperators
+
+noncomputable section
+namespace Paper
+
+/-- **Interval packing for two arbitrary predicates** (generic form of `finite_interval_packing`, whose
+proof never uses the concrete form of `Reg` and `TraceClose`): `Reg` (a per-cutoff cell predicate) and
+`TraceClose` (a two-cutoff cell predicate) are arbitrary, each with an interval-event witness cover of rate `B`
+larger than the branch entropy; then outside an event of probability at most `C_η 3^{-c_η N}` every chain of the
+`L`-adic subdivision of the root cube has at most `θ N / H₁` bad observation levels between depths `aN` and `bN`,
+where a level is bad unless `Reg` holds at both cutoffs and `TraceClose` holds. -/
+theorem finite_interval_packing_generic
+    (d : ℕ) (hd : 2 ≤ d)
+    [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)]
+    (a b theta : ℝ)
+    (ha : 0 < a) (hab : a < b) (hb : b < 1)
+    (htheta : 0 < theta) (hthetab : theta < b - a)
+    (H1 : ℕ) (hH1 : 0 < H1)
+    (B : ℝ)
+    (hB : B > 1000 * (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) / theta)
+    (model : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d)
+    (zroot : SpatialCoordinates d) (jroot : ℤ) :
+    let rootSide : ℝ := (3 : ℝ) ^ jroot
+    let L : ℝ := (3 : ℝ) ^ H1
+    let mgrid := subdivisionHalfWidth H1
+    let P : Measure (BilateralField d) := (chaosSampleLaw model).toMeasure
+    ∀ (Reg : ℕ → ℕ → SpatialCoordinates d → BilateralField d → Prop)
+      (hRegWitness : ∀ (N k : ℕ) (z : SpatialCoordinates d), k ≤ N →
+        ∃ W : ℕ+ → Set (BilateralField d),
+        (∀ h : ℕ+, MeasurableSet[MeasurableSpace.comap
+          ((Set.Icc (-(k : ℤ) - 2 * (h : ℤ)) (-(k : ℤ) + (h : ℤ))).restrict)
+          (inferInstance : MeasurableSpace
+            ((i : Set.Icc (-(k : ℤ) - 2 * (h : ℤ)) (-(k : ℤ) + (h : ℤ))) →
+              C(SpatialCoordinates d, ℝ)))] (W h)) ∧
+        (∀ h : ℕ+, P (W h) ≤ ENNReal.ofReal (Real.exp (-B * (h : ℝ)))) ∧
+        (∀ᵐ omega ∂P, ¬Reg N k z omega → omega ∈ ⋃ h : ℕ+, W h)),
+    ∀ (m0 : ℕ)
+      (TraceClose : ℕ → ℕ → ℕ → SpatialCoordinates d → BilateralField d → Prop)
+      (hTraceWitness : ∀ (N M k : ℕ) (z : SpatialCoordinates d),
+        k ≤ N → k ≤ M → m0 ≤ N - k → m0 ≤ M - k →
+        ∃ W : ℕ+ → Set (BilateralField d),
+        (∀ h : ℕ+, MeasurableSet[MeasurableSpace.comap
+          ((Set.Icc (-(k : ℤ) - 2 * (h : ℤ)) (-(k : ℤ) + (h : ℤ))).restrict)
+          (inferInstance : MeasurableSpace
+            ((i : Set.Icc (-(k : ℤ) - 2 * (h : ℤ)) (-(k : ℤ) + (h : ℤ))) →
+              C(SpatialCoordinates d, ℝ)))] (W h)) ∧
+        (∀ h : ℕ+, P (W h) ≤ ENNReal.ofReal (Real.exp (-B * (h : ℝ)))) ∧
+        (∀ᵐ omega ∂P, ¬TraceClose N M k z omega → omega ∈ ⋃ h : ℕ+, W h)),
+    ∃ Ceta ceta : ℝ, ∃ N0 : ℕ, 0 < Ceta ∧ 0 < ceta ∧
+      ∀ N M : ℕ, N0 ≤ N → N ≤ M →
+        (∀ k : ℤ, a * (N : ℝ) ≤ (k : ℝ) → (k : ℝ) ≤ b * (N : ℝ) →
+          0 ≤ k ∧ m0 ≤ N - k.toNat ∧ m0 ≤ M - k.toNat) ∧
+        ∃ Bad : Set (BilateralField d), MeasurableSet Bad ∧
+          P Bad ≤ ENNReal.ofReal (Ceta * (3 : ℝ) ^ (-ceta * (N : ℝ))) ∧
+          ∀ omega : BilateralField d, omega ∉ Bad →
+            ∀ w : ℕ → OddGridIndex d mgrid,
+              let k : ℕ → ℤ := fun n => (H1 : ℤ) * (n : ℤ) - jroot
+              let z : ℕ → SpatialCoordinates d := fun n =>
+                descendantCenter mgrid zroot rootSide n (fun i : Fin n => w i)
+              (Nat.card {n : ℕ // a * (N : ℝ) ≤ (k n : ℝ) ∧
+                (k n : ℝ) ≤ b * (N : ℝ) ∧
+                ¬(Reg N (k n).toNat (z n) omega ∧
+                  Reg M (k n).toNat (z n) omega ∧
+                  TraceClose N M (k n).toNat (z n) omega)} : ℝ) ≤
+                theta * (N : ℝ) / (H1 : ℝ) := by
+  dsimp only
+  intro Reg hRegWitness m0 TraceClose hTraceWitness
+  classical
+  let jabs : ℕ := jroot.natAbs
+  let qmargin : ℝ := 1 - b
+  have hqmargin : 0 < qmargin := by
+    dsimp [qmargin]
+    linarith
+  obtain ⟨Ncut, hNcut⟩ : ∃ Ncut : ℕ, (m0 : ℝ) / qmargin < Ncut :=
+    exists_nat_gt ((m0 : ℝ) / qmargin)
+  have hNcut' : (m0 : ℝ) < qmargin * (Ncut : ℝ) := by
+    have := (div_lt_iff₀ hqmargin).mp hNcut
+    nlinarith
+  let N0 : ℕ := max Ncut (max 1 (H1 * (jabs + 2)))
+  let q : ℝ := (B / 2 * (theta / 2) / 24) +
+    Real.log (1 - Real.exp (-(B / 4)))
+  have hlog3 : 0 < Real.log (3 : ℝ) := Real.log_pos (by norm_num)
+  have hBtheta : 1000 * (H1 : ℝ) * ((d : ℝ) + 1) *
+      (Real.log 3 + 1) < B * theta := by
+    exact (div_lt_iff₀ htheta).mp hB
+  have hB4 : 4 < B := by
+    have htheta1 : theta < 1 := by
+      have : b - a < 1 := by linarith
+      linarith
+    have hprod : 3000 ≤ 1000 * (H1 : ℝ) * ((d : ℝ) + 1) *
+        (Real.log 3 + 1) := by
+      have hH1' : (1 : ℝ) ≤ H1 := by
+        exact_mod_cast (show 1 ≤ H1 by omega)
+      have hd' : (3 : ℝ) ≤ (d : ℝ) + 1 := by
+        exact_mod_cast (show 3 ≤ d + 1 by omega)
+      have hl' : (1 : ℝ) ≤ Real.log 3 + 1 := by linarith
+      calc
+        (3000 : ℝ) = 1000 * 1 * 3 * 1 := by norm_num
+        _ ≤ 1000 * (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) := by
+          gcongr
+    have hfour : 4 * theta < B * theta := by linarith [hBtheta, hprod]
+    nlinarith
+  have hloglower : -1 ≤ Real.log (1 - Real.exp (-(B / 4))) := by
+    have hexp : Real.exp (-(B / 4)) < 1 := by
+      rw [Real.exp_lt_one_iff]
+      linarith
+    have hinside : 0 < 1 - Real.exp (-(B / 4)) := sub_pos.mpr hexp
+    have harg : Real.exp (-1 : ℝ) ≤ 1 - Real.exp (-(B / 4)) := by
+      have hsum : (2 : ℝ) ≤ Real.exp 1 := by
+        have ht := Real.add_one_le_exp (1 : ℝ)
+        norm_num at ht ⊢
+        exact ht
+      have he : Real.exp (-(B / 4)) ≤ Real.exp (-1 : ℝ) := by
+        apply Real.exp_le_exp.mpr
+        linarith
+      have hmul : Real.exp 1 * Real.exp (-1 : ℝ) = 1 := by
+        rw [← Real.exp_add]
+        norm_num
+      have hhalf : 2 * Real.exp (-1 : ℝ) ≤ 1 := by
+        nlinarith [Real.exp_pos (-1 : ℝ), hmul]
+      nlinarith [hhalf]
+    have hposarg : Real.exp (-1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
+      exact Real.exp_pos _
+    have hlog := Real.strictMonoOn_log.monotoneOn hposarg
+      (show 1 - Real.exp (-(B / 4)) ∈ Set.Ioi (0 : ℝ) by exact hinside) harg
+    simpa [Real.log_exp] using hlog
+  have hqentropy : (H1 : ℝ) * (d : ℝ) * Real.log 3 < q := by
+    have hbase : (H1 : ℝ) * (d : ℝ) * Real.log 3 ≤
+        (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) := by
+      calc
+        (H1 : ℝ) * (d : ℝ) * Real.log 3 ≤
+            (H1 : ℝ) * ((d : ℝ) + 1) * Real.log 3 := by
+              have hdle : (d : ℝ) ≤ (d : ℝ) + 1 := by linarith
+              gcongr
+        _ ≤ (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) := by
+              have : Real.log 3 ≤ Real.log 3 + 1 := by linarith
+              have hH1nonneg : (0 : ℝ) ≤ H1 := by positivity
+              have hd1nonneg : (0 : ℝ) ≤ (d : ℝ) + 1 := by positivity
+              gcongr
+    have hA : 3 ≤ (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) := by
+      calc
+        (3 : ℝ) = 1 * 3 * 1 := by norm_num
+        _ ≤ (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) := by
+          have hH1' : (1 : ℝ) ≤ H1 := by
+            exact_mod_cast (show 1 ≤ H1 by omega)
+          have hd' : (3 : ℝ) ≤ (d : ℝ) + 1 := by
+            exact_mod_cast (show 3 ≤ d + 1 by omega)
+          have hl' : (1 : ℝ) ≤ Real.log 3 + 1 := by linarith
+          have hl'' : Real.log 3 ≤ Real.log 3 + 1 := by linarith
+          gcongr
+    dsimp [q]
+    have hAplus :
+        (H1 : ℝ) * ((d : ℝ) + 1) * (Real.log 3 + 1) + 1 < B * theta / 96 := by
+      linarith only [hBtheta, hA]
+    have hXlt : (H1 : ℝ) * (d : ℝ) * Real.log 3 < B * theta / 96 - 1 := by
+      linarith only [hbase, hAplus]
+    linarith only [hXlt, hloglower]
+  let ceta : ℝ := (q - (H1 : ℝ) * (d : ℝ) * Real.log 3) /
+    (2 * (H1 : ℝ) * Real.log 3)
+  let Ceta : ℝ := Real.exp (q - (H1 : ℝ) * (d : ℝ) * Real.log 3)
+  have hceta : 0 < ceta := by
+    dsimp [ceta]
+    have hnum : 0 < q - (H1 : ℝ) * (d : ℝ) * Real.log 3 := by
+      linarith only [hqentropy]
+    have hden : 0 < 2 * (H1 : ℝ) * Real.log 3 := by positivity
+    exact div_pos hnum hden
+  have hCeta : 0 < Ceta := by
+    dsimp [Ceta]
+    positivity
+  refine ⟨Ceta, ceta, N0, hCeta, hceta, ?_⟩
+  intro N M hN0 hNM
+  have hN1 : 1 ≤ N := by
+    have h : 1 ≤ N0 := le_trans (le_max_left _ _) (le_max_right _ _)
+    exact le_trans h hN0
+  have hNpos : 0 < (N : ℝ) := by positivity
+  have hNcutN : Ncut ≤ N := le_trans (le_max_left _ _) hN0
+  have hsize : H1 * (jabs + 2) ≤ N := by
+    exact le_trans (le_max_right _ _) (le_trans (le_max_right _ _) hN0)
+  have hwindow : ∀ k : ℤ, a * (N : ℝ) ≤ (k : ℝ) →
+      (k : ℝ) ≤ b * (N : ℝ) →
+      0 ≤ k ∧ m0 ≤ N - k.toNat ∧ m0 ≤ M - k.toNat := by
+    intro k hka hkb
+    have hapos : 0 < a * (N : ℝ) := mul_pos ha hNpos
+    have hbNlt : b * (N : ℝ) < (N : ℝ) := by
+      have h := mul_lt_mul_of_pos_right hb hNpos
+      simpa [mul_one] using h
+    have hkposreal : 0 < (k : ℝ) := lt_of_lt_of_le hapos hka
+    have hk0 : 0 ≤ k := by exact_mod_cast hkposreal.le
+    have hklt : (k : ℝ) < (N : ℝ) := lt_of_le_of_lt hkb hbNlt
+    have hkN : k.toNat ≤ N := by
+      have hklt' : k < (N : ℤ) := by exact_mod_cast hklt
+      omega
+    have hkcast : (k.toNat : ℝ) = k := by
+      have h := Int.toNat_of_nonneg hk0
+      exact_mod_cast h
+    have hsubcast : ((N - k.toNat : ℕ) : ℝ) = (N : ℝ) - k := by
+      rw [Nat.cast_sub hkN]
+      norm_num [hkcast]
+    have hcut : (m0 : ℝ) ≤ (N : ℝ) - k := by
+      have hqN : (m0 : ℝ) < qmargin * (N : ℝ) := by
+        have hNcutreal : (Ncut : ℝ) ≤ (N : ℝ) := by exact_mod_cast hNcutN
+        have hmul : qmargin * (Ncut : ℝ) ≤ qmargin * (N : ℝ) :=
+          mul_le_mul_of_nonneg_left hNcutreal hqmargin.le
+        exact lt_of_lt_of_le hNcut' hmul
+      dsimp [qmargin] at hqN ⊢
+      linarith only [hqN, hkb]
+    have hcutN : m0 ≤ N - k.toNat := by
+      have hcut' : (m0 : ℝ) ≤ ((N - k.toNat : ℕ) : ℝ) := by
+        rw [hsubcast]
+        exact hcut
+      exact_mod_cast hcut'
+    have hcutM : m0 ≤ M - k.toNat := by
+      exact le_trans hcutN (Nat.sub_le_sub_right hNM _)
+    exact ⟨hk0, hcutN, hcutM⟩
+  constructor
+  · exact hwindow
+  let K : ℕ := N / H1 + jabs + 2
+  have hKreal : (N : ℝ) / (H1 : ℝ) ≤ (K : ℝ) := by
+    apply aux_finite_interval_packing_nat_div_real N H1 K hH1
+    change N / H1 + 1 ≤ N / H1 + jabs + 2
+    exact aux_finite_interval_packing_add_two (N / H1) jabs
+  let β := Fin K → OddGridIndex d (subdivisionHalfWidth H1)
+  have hcardβ : (Fintype.card β : ℝ≥0∞) =
+      ENNReal.ofReal (Fintype.card β : ℝ) := by
+    exact (ENNReal.ofReal_natCast (Fintype.card β)).symm
+  let kval : Fin K → ℕ := fun i =>
+    ((H1 : ℤ) * (i.val : ℤ) - jroot).toNat
+  let kint : Fin K → ℤ := fun i => (H1 : ℤ) * (i.val : ℤ) - jroot
+  let zval : β → Fin K → SpatialCoordinates d := fun w i =>
+    descendantCenter (subdivisionHalfWidth H1) zroot ((3 : ℝ) ^ jroot) i.val
+      (fun j : Fin i.val => w ⟨j.val, j.isLt.trans i.isLt⟩)
+  let relevant : Fin K → Prop := fun i =>
+    a * (N : ℝ) ≤ (kint i : ℝ) ∧ (kint i : ℝ) ≤ b * (N : ℝ)
+  have hKle : K ≤ 2 * (N / H1) := by
+    have hdiv : jabs + 2 ≤ N / H1 := by
+      apply (Nat.le_div_iff_mul_le hH1).2
+      simpa [Nat.mul_comm] using hsize
+    dsimp [K]
+    omega
+  have hKlower : N / H1 ≤ K := by
+    dsimp [K]
+    omega
+  have hthetaK : theta / 2 * (K : ℝ) ≤ theta * (N : ℝ) / (H1 : ℝ) := by
+    have hKle' : (K : ℝ) ≤ 2 * (N / H1 : ℕ) := by exact_mod_cast hKle
+    have hdivcast : ((N / H1 : ℕ) : ℝ) ≤ (N : ℝ) / (H1 : ℝ) := by
+      exact Nat.cast_div_le
+    calc
+      theta / 2 * (K : ℝ) ≤ theta / 2 * (2 * (N / H1 : ℕ)) := by
+        exact mul_le_mul_of_nonneg_left hKle' (by positivity)
+      _ = theta * ((N / H1 : ℕ) : ℝ) := by ring
+      _ ≤ theta * (N : ℝ) / (H1 : ℝ) := by
+        have h := mul_le_mul_of_nonneg_left hdivcast htheta.le
+        simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using h
+  have hdata : ∀ i : Fin K, relevant i →
+      kval i ≤ N ∧ m0 ≤ N - kval i ∧ m0 ≤ M - kval i := by
+    intro i hi
+    have hw := hwindow (kint i) hi.1 hi.2
+    have hk0 : 0 ≤ kint i := hw.1
+    have hklt : (kint i : ℝ) < (N : ℝ) := by
+      have hbNlt : b * (N : ℝ) < (N : ℝ) := by
+        have h := mul_lt_mul_of_pos_right hb hNpos
+        simpa [mul_one] using h
+      exact lt_of_le_of_lt hi.2 hbNlt
+    have hkcastZ : (kval i : ℤ) = kint i := by
+      dsimp [kval]
+      exact Int.toNat_of_nonneg hk0
+    have hklt' : kint i < (N : ℤ) := by exact_mod_cast hklt
+    have hkn : kval i ≤ N := by omega
+    exact ⟨hkn, hw.2.1, hw.2.2⟩
+  have hvalid (i : Fin K) (hi : relevant i) : kval i ≤ N := (hdata i hi).1
+  have hcutNvalid (i : Fin K) (hi : relevant i) : m0 ≤ N - kval i := (hdata i hi).2.1
+  have hcutMvalid (i : Fin K) (hi : relevant i) : m0 ≤ M - kval i := (hdata i hi).2.2
+  let WNpos : β → (i : Fin K) → relevant i → ℕ+ → Set (BilateralField d) :=
+    fun w i hi => Classical.choose (hRegWitness N (kval i) (zval w i) (hvalid i hi))
+  let WMpos : β → (i : Fin K) → relevant i → ℕ+ → Set (BilateralField d) :=
+    fun w i hi => Classical.choose (hRegWitness M (kval i) (zval w i)
+      ((hvalid i hi).trans hNM))
+  let WTpos : β → (i : Fin K) → relevant i → ℕ+ → Set (BilateralField d) :=
+    fun w i hi => Classical.choose (hTraceWitness N M (kval i) (zval w i)
+      (hvalid i hi) ((hvalid i hi).trans hNM) (hcutNvalid i hi) (hcutMvalid i hi))
+  have hWNspec (w : β) (i : Fin K) (hi : relevant i) :=
+    Classical.choose_spec (hRegWitness N (kval i) (zval w i) (hvalid i hi))
+  have hWMspec (w : β) (i : Fin K) (hi : relevant i) :=
+    Classical.choose_spec (hRegWitness M (kval i) (zval w i)
+      ((hvalid i hi).trans hNM))
+  have hWTspec (w : β) (i : Fin K) (hi : relevant i) :=
+    Classical.choose_spec (hTraceWitness N M (kval i) (zval w i)
+      (hvalid i hi) ((hvalid i hi).trans hNM) (hcutNvalid i hi) (hcutMvalid i hi))
+  let g : ℤ → BilateralField d → C(SpatialCoordinates d, ℝ) := fun j omega => omega j
+  have hg : ∀ j : ℤ, Measurable (g j) := by
+    intro j
+    dsimp [g]
+    exact measurable_pi_apply j
+  have hgi : iIndepFun g (chaosSampleLaw model).toMeasure := by
+    change iIndepFun (fun j : ℤ => fun omega : BilateralField d => omega j)
+      (Measure.infinitePi
+        (fun j : ℤ => (scaledLayerLaw d (chaosRootFieldLaw model) j :
+          Measure C(SpatialCoordinates d, ℝ))))
+    exact iIndepFun_infinitePi (fun _ => measurable_id)
+  have hnidx : ∀ w : β, Function.Injective (fun i : Fin K => kint i) := by
+    intro w i j hij
+    apply Fin.ext
+    have hmul : (H1 : ℤ) * (i.val : ℤ) = (H1 : ℤ) * (j.val : ℤ) := by
+      change (H1 : ℤ) * (i.val : ℤ) - jroot =
+        (H1 : ℤ) * (j.val : ℤ) - jroot at hij
+      exact sub_left_injective hij
+    have hH1z : (H1 : ℤ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hH1)
+    have hc : (i.val : ℤ) = (j.val : ℤ) := mul_left_cancel₀ hH1z hmul
+    exact_mod_cast hc
+  let WU : β → Fin K → ℕ+ → Set (BilateralField d) := fun w i h =>
+    if hi : relevant i then WNpos w i hi h ∪ (WMpos w i hi h ∪ WTpos w i hi h) else ∅
+  have hUmeas : ∀ (w : β) (i : Fin K) (h : ℕ+),
+      MeasurableSet[
+        (⨆ j : ℤ, ⨆ (_ : j ∈ Finset.Icc (kint i - (h : ℤ))
+          (kint i + 2 * (h : ℤ))),
+          MeasurableSpace.comap (g (-j))
+            (inferInstance : MeasurableSpace C(SpatialCoordinates d, ℝ)))]
+        (WU w i h) := by
+    intro w i h
+    by_cases hi : relevant i
+    · dsimp [WU]
+      rw [dif_pos hi]
+      have hk0 : 0 ≤ kint i := (hwindow (kint i) hi.1 hi.2).1
+      have hkcastZ : (kval i : ℤ) = kint i := by
+        dsimp [kval]
+        exact Int.toNat_of_nonneg hk0
+      change MeasurableSet[
+        (⨆ j : ℤ, ⨆ (_ : j ∈ Finset.Icc (kint i - (h : ℤ))
+          (kint i + 2 * (h : ℤ))),
+          MeasurableSpace.comap (fun omega : BilateralField d => omega (-j))
+            (inferInstance : MeasurableSpace C(SpatialCoordinates d, ℝ)))]
+        (WNpos w i hi h ∪ (WMpos w i hi h ∪ WTpos w i hi h))
+      rw [aux_finite_interval_packing_sigma (kint i) h]
+      rw [← hkcastZ]
+      change @MeasurableSet (BilateralField d)
+        (MeasurableSpace.comap
+          ((Set.Icc (-(kval i : ℤ) - 2 * (h : ℤ))
+            (-(kval i : ℤ) + (h : ℤ))).restrict)
+          (inferInstance : MeasurableSpace
+            ((j : Set.Icc (-(kval i : ℤ) - 2 * (h : ℤ))
+              (-(kval i : ℤ) + (h : ℤ))) → C(SpatialCoordinates d, ℝ))))
+        (WNpos w i hi h ∪ (WMpos w i hi h ∪ WTpos w i hi h))
+      exact ((hWNspec w i hi).1 h).union ((hWMspec w i hi).1 h |>.union ((hWTspec w i hi).1 h))
+    · dsimp [WU]
+      simp only [dif_neg hi, MeasurableSet.empty]
+  have hUprob : ∀ (w : β) (i : Fin K) (h : ℕ+),
+      (chaosSampleLaw model).toMeasure (WU w i h) ≤
+        ENNReal.ofReal (Real.exp (-(B / 2) * (h : ℝ))) := by
+    intro w i h
+    by_cases hi : relevant i
+    · dsimp [WU]
+      rw [dif_pos hi]
+      exact aux_finite_interval_packing_three_rate
+        (chaosSampleLaw model).toMeasure (WNpos w i hi h)
+          (WMpos w i hi h) (WTpos w i hi h) B hB4 h
+          ((hWNspec w i hi).2.1 h) ((hWMspec w i hi).2.1 h)
+          ((hWTspec w i hi).2.1 h)
+    · simp [WU, hi]
+  let failure : β → Fin K → Set (BilateralField d) := fun w i => ⋃ h : ℕ+, WU w i h
+  have hfailure : ∀ (w : β) (i : Fin K),
+      failure w i ⊆ ⋃ h : ℕ+, WU w i h := by intro w i; exact Subset.rfl
+  have hEprob := SubdiffusiveProcess.union_bound_finitely_many_bad_branches
+    (J := K) (A := B / 2) (θ := theta / 2) (by linarith [hB4])
+    (by positivity) (by nlinarith [htheta, hthetab, hab, hb])
+    (BilateralField d) (C(SpatialCoordinates d, ℝ)) (chaosSampleLaw model).toMeasure
+    g hg hgi (fun _ i => kint i) hnidx failure WU hUmeas hUprob hfailure
+  have hcoverAE : ∀ᵐ omega ∂(chaosSampleLaw model).toMeasure,
+      ∀ w : β, ∀ i : Fin K, ∀ hi : relevant i,
+        (¬Reg N (kval i) (zval w i) omega → omega ∈ ⋃ h : ℕ+, WNpos w i hi h) ∧
+        (¬Reg M (kval i) (zval w i) omega → omega ∈ ⋃ h : ℕ+, WMpos w i hi h) ∧
+        (¬TraceClose N M (kval i) (zval w i) omega →
+          omega ∈ ⋃ h : ℕ+, WTpos w i hi h) := by
+    apply ae_all_iff.mpr
+    intro w
+    apply ae_all_iff.mpr
+    intro i
+    by_cases hi : relevant i
+    · filter_upwards [(hWNspec w i hi).2.2, (hWMspec w i hi).2.2,
+        (hWTspec w i hi).2.2] with omega hN hM hT
+      exact fun _ => ⟨hN, hM, hT⟩
+    · exact Filter.Eventually.of_forall (fun omega hi' => (hi hi').elim)
+  let Good : BilateralField d → Prop := fun omega =>
+    ∀ w : β, ∀ i : Fin K, ∀ hi : relevant i,
+      (¬Reg N (kval i) (zval w i) omega → omega ∈ ⋃ h : ℕ+, WNpos w i hi h) ∧
+      (¬Reg M (kval i) (zval w i) omega → omega ∈ ⋃ h : ℕ+, WMpos w i hi h) ∧
+      (¬TraceClose N M (kval i) (zval w i) omega →
+        omega ∈ ⋃ h : ℕ+, WTpos w i hi h)
+  let Null : Set (BilateralField d) := {omega | ¬Good omega}
+  have hNull : (chaosSampleLaw model).toMeasure Null = 0 := by
+    apply ae_iff.mp
+    simpa [Null, Good] using hcoverAE
+  let E : Set (BilateralField d) := {omega | ∃ w : β,
+    theta / 2 * (K : ℝ) ≤
+      (Set.ncard {i : Fin K | omega ∈ failure w i} : ℝ)}
+  have hEprob' : (chaosSampleLaw model).toMeasure E ≤
+      (Fintype.card β : ℝ≥0∞) * ENNReal.ofReal (Real.exp (-q * (K : ℝ))) := by
+    change (chaosSampleLaw model).toMeasure
+      {omega | ∃ w : β, theta / 2 * (K : ℝ) ≤
+        (Set.ncard {i : Fin K | omega ∈ failure w i} : ℝ)} ≤ _
+    convert hEprob using 1 <;> dsimp [q] <;> ring
+  have hgap : 0 < q - (H1 : ℝ) * (d : ℝ) * Real.log 3 := by
+    apply sub_pos.mpr
+    simpa using hqentropy
+  have hcardreal : (Fintype.card β : ℝ) =
+      Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3) * (K : ℝ)) := by
+    change (Fintype.card (Fin K → OddGridIndex d (subdivisionHalfWidth H1)) : ℝ) = _
+    calc
+      (Fintype.card (Fin K → OddGridIndex d (subdivisionHalfWidth H1)) : ℝ) =
+          Real.exp ((H1 : ℝ) * (d : ℝ) * (K : ℝ) * Real.log 3) :=
+        aux_finite_interval_packing_word_card d H1 K
+      _ = Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3) * (K : ℝ)) :=
+        congrArg Real.exp (aux_finite_interval_packing_exp_order d H1 K)
+  have hcardenn : (Fintype.card β : ℝ≥0∞) =
+      ENNReal.ofReal (Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3) * (K : ℝ))) := by
+    calc
+      (Fintype.card β : ℝ≥0∞) = ENNReal.ofReal (Fintype.card β : ℝ) := hcardβ
+      _ = ENNReal.ofReal (Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3) * (K : ℝ))) :=
+        congrArg ENNReal.ofReal hcardreal
+  have hprod : (Fintype.card β : ℝ≥0∞) *
+      ENNReal.ofReal (Real.exp (-q * (K : ℝ))) =
+      ENNReal.ofReal (Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3 - q) * (K : ℝ))) := by
+    rw [hcardenn]
+    rw [← ENNReal.ofReal_mul
+      (by positivity : 0 ≤ Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3) * (K : ℝ)))]
+    congr 1
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  have hcetaEq : ceta =
+      (q - (H1 : ℝ) * (d : ℝ) * Real.log 3) /
+        (2 * (H1 : ℝ) * Real.log 3) := by
+    dsimp [ceta]
+  have hCetaEq : Ceta =
+      Real.exp (q - (H1 : ℝ) * (d : ℝ) * Real.log 3) := by
+    dsimp [Ceta]
+  have hnum : ENNReal.ofReal
+      (Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3 - q) * (K : ℝ))) ≤
+      ENNReal.ofReal (Ceta * (3 : ℝ) ^ (-ceta * (N : ℝ))) := by
+    apply ENNReal.ofReal_le_ofReal
+    exact aux_finite_interval_packing_decay
+      ((H1 : ℝ) * (d : ℝ) * Real.log 3) q ceta Ceta N K H1
+      hH1 hKreal hgap hcetaEq hCetaEq
+  let Bad : Set (BilateralField d) := toMeasurable
+    (chaosSampleLaw model).toMeasure (E ∪ Null)
+  have hBadprob : (chaosSampleLaw model).toMeasure Bad ≤
+      ENNReal.ofReal (Ceta * (3 : ℝ) ^ (-ceta * (N : ℝ))) := by
+    calc
+      (chaosSampleLaw model).toMeasure Bad =
+          (chaosSampleLaw model).toMeasure (E ∪ Null) := by
+            dsimp [Bad]
+            exact measure_toMeasurable _
+      _ ≤ (chaosSampleLaw model).toMeasure E +
+          (chaosSampleLaw model).toMeasure Null := measure_union_le _ _
+      _ = (chaosSampleLaw model).toMeasure E := by rw [hNull, add_zero]
+      _ ≤ (Fintype.card β : ℝ≥0∞) * ENNReal.ofReal (Real.exp (-q * (K : ℝ))) := hEprob'
+      _ = ENNReal.ofReal (Real.exp (((H1 : ℝ) * (d : ℝ) * Real.log 3 - q) * (K : ℝ))) := hprod
+      _ ≤ ENNReal.ofReal (Ceta * (3 : ℝ) ^ (-ceta * (N : ℝ))) := hnum
+  refine ⟨Bad, measurableSet_toMeasurable _ _, hBadprob, ?_⟩
+  have hsubset : E ∪ Null ⊆ Bad := subset_toMeasurable _ _
+  intro omega hnot w
+  have hGood : Good omega := by
+    by_contra hbad
+    exact hnot (hsubset (Or.inr hbad))
+  dsimp [Good] at hGood
+  let kN : ℕ → ℤ := fun n => (H1 : ℤ) * (n : ℤ) - jroot
+  let zN : ℕ → SpatialCoordinates d := fun n =>
+    descendantCenter (subdivisionHalfWidth H1) zroot ((3 : ℝ) ^ jroot) n
+      (fun i => w i)
+  let bw : β := fun i => w i.val
+  let T : Set ℕ := {n | a * (N : ℝ) ≤ (kN n : ℝ) ∧
+      (kN n : ℝ) ≤ b * (N : ℝ) ∧
+      ¬(Reg N (kN n).toNat (zN n) omega ∧
+        Reg M (kN n).toNat (zN n) omega ∧
+        TraceClose N M (kN n).toNat (zN n) omega)}
+  change (Nat.card {n : ℕ // n ∈ T} : ℝ) ≤ theta * (N : ℝ) / (H1 : ℝ)
+  let S : Set (Fin K) := {i | omega ∈ failure bw i}
+  have hnotE : omega ∉ E := by
+    intro hE
+    exact hnot (hsubset (Or.inl hE))
+  have hSlt : (Set.ncard S : ℝ) < theta / 2 * (K : ℝ) := by
+    apply lt_of_not_ge
+    intro hge
+    apply hnotE
+    exact ⟨bw, by simpa [E, S] using hge⟩
+  have hdepth : ∀ n : ℕ, n ∈ T → n < K := by
+    intro n hn
+    apply aux_finite_interval_packing_depth_bound H1 N hH1 jroot n
+    have hbNlt : b * (N : ℝ) < (N : ℝ) := by
+      have h := mul_lt_mul_of_pos_right hb hNpos
+      simpa [mul_one] using h
+    have hklt : (kN n : ℝ) < (N : ℝ) :=
+      lt_of_le_of_lt hn.2.1 hbNlt
+    exact_mod_cast hklt
+  have hmem : ∀ n : ℕ, ∀ hn : n ∈ T,
+      (⟨n, hdepth n hn⟩ : Fin K) ∈ S := by
+    intro n hn
+    let i : Fin K := ⟨n, hdepth n hn⟩
+    have hrel : relevant i := by
+      dsimp [relevant, kint, i]
+      exact ⟨hn.1, hn.2.1⟩
+    have hk0 : 0 ≤ kN n := (hwindow (kN n) hn.1 hn.2.1).1
+    have hkcast : (kval i : ℤ) = kN n := by
+      dsimp [kval, kN, i]
+      exact Int.toNat_of_nonneg hk0
+    have hfail : ¬(Reg N (kval i) (zval bw i) omega ∧
+        Reg M (kval i) (zval bw i) omega ∧
+        TraceClose N M (kval i) (zval bw i) omega) := by
+      simpa [T, zN, zval, i, hkcast] using hn.2.2
+    have hcover : omega ∈ failure bw i := by
+      have hg := hGood bw i hrel
+      have hu : omega ∈
+          (⋃ h : ℕ+, WNpos bw i hrel h) ∪
+            ((⋃ h : ℕ+, WMpos bw i hrel h) ∪ (⋃ h : ℕ+, WTpos bw i hrel h)) := by
+        by_cases hN : Reg N (kval i) (zval bw i) omega
+        · by_cases hM : Reg M (kval i) (zval bw i) omega
+          · by_cases hT : TraceClose N M (kval i) (zval bw i) omega
+            · exact (hfail ⟨hN, hM, hT⟩).elim
+            · exact Or.inr (Or.inr (hg.2.2 hT))
+          · exact Or.inr (Or.inl (hg.2.1 hM))
+        · exact Or.inl (hg.1 hN)
+      rw [show failure bw i = ⋃ h : ℕ+, WU bw i h by rfl]
+      rcases hu with hu | hu
+      · rcases Set.mem_iUnion.1 hu with ⟨h, hh⟩
+        exact Set.mem_iUnion.2 ⟨h, by simpa [WU, hrel] using Or.inl hh⟩
+      · rcases hu with hu | hu
+        · rcases Set.mem_iUnion.1 hu with ⟨h, hh⟩
+          exact Set.mem_iUnion.2 ⟨h, by simpa [WU, hrel] using Or.inr (Or.inl hh)⟩
+        · rcases Set.mem_iUnion.1 hu with ⟨h, hh⟩
+          exact Set.mem_iUnion.2 ⟨h, by simpa [WU, hrel] using Or.inr (Or.inr hh)⟩
+    exact hcover
+  let f : {n // n ∈ T} → {i // i ∈ S} := fun n =>
+    ⟨⟨n.1, hdepth n.1 n.2⟩, hmem n.1 n.2⟩
+  have hf : Function.Injective f := by
+    intro x y hxy
+    apply Subtype.ext
+    exact congrArg (fun z : {i // i ∈ S} => z.val.val) hxy
+  have hcardNat : Nat.card {n // n ∈ T} ≤ Nat.card {i // i ∈ S} :=
+    Nat.card_le_card_of_injective f hf
+  have hcardReal : (Nat.card {n // n ∈ T} : ℝ) ≤ (Set.ncard S : ℝ) := by
+    exact_mod_cast (by simpa only [Nat.card_coe_set_eq] using hcardNat)
+  have hcardT : (Nat.card {n // n ∈ T} : ℝ) < theta / 2 * (K : ℝ) :=
+    hcardReal.trans_lt hSlt
+  exact (le_of_lt hcardT).trans hthetaK
+
+end Paper
