@@ -1,0 +1,114 @@
+version: v0.4
+project:
+  name: subdiffusive-process
+  description: A Lean 4 formalization of the scaling limit of a Brownian particle in a log-correlated
+    potential, quantitative homogenization of its elliptic operator and anomalous Hölder regularity. The
+    development builds on Mathlib, CoarseGraining and MarkovProcess.
+  authors:
+  - Scott Armstrong
+  - Ahmed Bou-Rabee
+  - Tuomo Kuusi
+  license: Apache-2.0
+  responsible_maintainers:
+  - Scott Armstrong
+classification:
+  arxiv:
+  - math.PR
+  - math.AP
+  msc2020:
+  - 60K37
+  - 35R60
+  - 82B28
+sources:
+- title: Anomalous scaling limit of a Brownian particle in a log-correlated potential
+  authors:
+  - Scott Armstrong
+  - Ahmed Bou-Rabee
+  - Tuomo Kuusi
+  type: paper
+  relationship: formalizes
+  location: paper/
+  note: Author-authorized live paper sources, bibliography, figures and rebuilt PDF, pinned to 9860ff1b02fbf478b44b7bb7f0482094e4792840.
+    Labels were checked against that snapshot.
+  license: unknown
+  author_endorsement: participated
+related_formalizations:
+- id: https://github.com/nitromannitol/CoarseGraining
+  relationship: builds-on
+  note: Pinned dependency currently private; public publication requires public availability of this commit.
+- id: https://github.com/nitromannitol/MarkovProcess
+  relationship: builds-on
+  note: Pinned dependency currently private; public publication requires public availability of this commit.
+status:
+  scope: Headline Theorem A (Paper.t_A_short), its precise form (Paper.t_A), and Theorems B and C, with
+    their supporting development. CORRESPONDENCE indexes 160 paper statements and passages, including
+    a paper-only centered-energy lemma. The standalone build and fresh clean-clone build passed with zero
+    errors and 23,895 / 23,895 warnings, respectively. Headline A, precise A, B and C use exactly propext,
+    Classical.choice and Quot.sound. Theorem B passed bundled comparator checks locally; the A/C exporters
+    require a higher host memory-mapping limit and run in GitHub Actions. The final release also awaits
+    the port team’s linter-warning fixes. The code-only production scan found no incomplete proofs or
+    added axioms.
+  sorry_count: 0
+  sorry_count_scope: production library only
+  sorry_in_definitions: 0
+  axioms:
+  - propext
+  - Classical.choice
+  - Quot.sound
+automation:
+  methods:
+  - method: agent
+    models:
+    - gpt-6.1-sol
+    framework: Codex
+    tool_setup: AI-assisted release preparation under human direction. The target toolchain is Lean v4.35.0-rc2
+      with Mathlib at the same version, and CoarseGraining and MarkovProcess at fixed revisions. Separate
+      draft workflows run the pinned comparator and the bundled Palomar kernels.
+    cost:
+      wall_time: not tracked
+      spend_usd: not tracked
+      hardware: local Linux machine
+    prompting_notes: Preserve the approved mathematics and expose its exact statements.
+  spend_usd: not tracked
+  notes: The proof development used additional AI assistance; a complete model and cost disclosure has
+    not yet been confirmed. Release preparation, porting and proof verification are distinct activities.
+    The local build and axiom gates reported here passed.
+fidelity:
+  divergences: The scaling-limit theorem concerns the continuous Feller diffusion constructed from weak
+    elliptic resolvents. Its Brownian-driver SDE identification is paper-only. The latest paper centered-energy
+    lemma has no exported principal. Historical fixed-clock and killed-Feller principals are excluded.
+    Main comparator statements and definitions were reviewed against the final source; no mathematical
+    source declaration was changed by export.
+review:
+  status: local builds and axiom audits passed; independent comparator workflow in CI; warning fixes pending
+  reviewers: []
+  notes: Local standalone and clean-clone compilation, main-theorem axiom audits, scrub and schema checks
+    passed. The author approved this single-commit candidate on the private release-candidate branch so
+    that A/B/C independent kernels can run in GitHub Actions. The preview main branch stays unchanged.
+    The final release will be exported after the warning fixes land. A complete AI model and cost census
+    remains unconfirmed.
+alignment:
+  namespace: SubdiffusiveProcess
+  statements:
+  - source: Theorem A (introduction, t.A)
+    lean: SubdiffusiveProcess.process_convergence
+    module: SubdiffusiveProcess.MainTheorems
+    status: build and standard-three axiom audit passed; bundled Palomar comparator in CI
+    note: 'Paper.t_A_short; comparator pair: SubdiffusiveProcessAudit/ProcessConvergence/.'
+  - source: Scaling limit (precise form, t.scaling.limit)
+    lean: SubdiffusiveProcess.process_convergence_precise
+    module: SubdiffusiveProcess.MainTheorems
+    status: build and standard-three axiom audit passed
+    note: Paper.t_A; accompanies headline Paper.t_A_short and has a separate axiom report.
+  - source: Theorem B
+    lean: SubdiffusiveProcess.quantitative_homogenization
+    module: SubdiffusiveProcess.MainTheorems
+    status: build and standard-three axiom audit passed; bundled Palomar comparator in CI
+    note: 'Comparator pair: SubdiffusiveProcessAudit/QuantitativeHomogenization/.'
+  - source: Theorem C
+    lean: SubdiffusiveProcess.anomalous_holder_regularity
+    module: SubdiffusiveProcess.MainTheorems
+    status: build and standard-three axiom audit passed; bundled Palomar comparator in CI
+    note: 'Comparator pair: SubdiffusiveProcessAudit/AnomalousHolderRegularity/.'
+acknowledgements: Lean 4, Mathlib, Lake, CoarseGraining, MarkovProcess, leanprover/comparator, NanoDa
+  and con-ron. Funding acknowledgements are to be confirmed by the authors.

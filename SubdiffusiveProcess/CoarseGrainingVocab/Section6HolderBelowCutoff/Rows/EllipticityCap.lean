@@ -1,0 +1,118 @@
+module
+
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderInterior.EllipticityPairing
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HarmonicApproximation.LocalEllipticityControl
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HarmonicApproximation.BoundaryEllipticityCaps
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HarmonicApproximation.GoodEventErrorCap
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.CutoffEllipticityCaps
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.CutoffErrorCap
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.CutoffLocalError
+
+@[expose] public section
+
+
+
+
+namespace SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.Rows
+
+open SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderInterior
+
+open MeasureTheory SubdiffusiveProcess.CoarseGrainingVocab
+open SubdiffusiveProcess.CoarseGrainingVocab.Section6HarmonicApproximation
+open Homogenization hiding Vec
+open Homogenization.Book
+
+noncomputable section
+
+variable {d : ℕ}
+variable {L : ℕ}
+
+/-- **The good-scale ellipticity cap.**  At a good scale, the tail average times
+the inverse lower multiscale ellipticity constant of the cutoff family, on the
+off-grid comparison cube, is bounded by a dimension-only constant. -/
+theorem exists_interiorEllipticityCap_cut (d : ℕ) [NeZero d] :
+    ∃ Kell : ℝ, 0 ≤ Kell ∧
+      ∀ M : SubdiffusiveProcess.Frozen.Assumptions.GMCModel d,
+      ∀ s ∈ Set.Icc (512 * M.delta ^ 2) (1 / 4 : ℝ),
+      ∀ L n : ℕ,
+      ∀ omega : SubdiffusiveProcess.Frozen.Assumptions.PotentialSample d, ∀ y z : Vec d,
+        translateSet (y - z) (cubeSet (originCube d ((n : ℤ) - 2))) ⊆
+          cubeSet (originCube d ((n : ℤ) + 2)) →
+        omega ∈ goodEvent M (some L) (n + 2) z 1 (s / 8) →
+        tailAverage M L (n + 2) omega (translatedCube d ((n : ℤ) + 2) z) *
+            (Ch02.lambdaSq (originCube d ((n : ℤ) - 2)) (1 / 2 : ℝ) (.finite 2)
+              (aCutoffFamily M L (translatePotentialSample y omega)))⁻¹ ≤
+          Kell := by
+  obtain ⟨C, hC, hgood⟩ :=
+    SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.exists_section6HomogenizationError_le_of_cutoffGoodEvent (d := d)
+  refine ⟨2 * (d : ℝ) *
+    ((Real.sqrt (192 * (d : ℝ)) * ((3 : ℝ) ^ ((1 : ℝ) / 8) * C)) ^ 2 + 1), ?_, ?_⟩
+  · have h1 : (0 : ℝ) ≤ 2 * (d : ℝ) := by positivity
+    have h2 : (0 : ℝ) ≤
+        (Real.sqrt (192 * (d : ℝ)) * ((3 : ℝ) ^ ((1 : ℝ) / 8) * C)) ^ 2 + 1 := by
+      positivity
+    exact mul_nonneg h1 h2
+  intro M s hs L n omega y z hcontain hgoodEvent
+  have hdelta : 0 < M.delta := M.shellPrefix.delta_pos
+  have hs0 : 0 < s :=
+    (mul_pos (by norm_num) (pow_pos hdelta 2)).trans_le hs.1
+  set A : Ch02.TriadicCoeffFamily d :=
+    aCutoffFamily M L (translatePotentialSample y omega) with hAdef
+  set Q : TriadicCube d := originCube d ((n : ℤ) - 2) with hQdef
+  set sigma : ℝ :=
+    tailAverage M L (n + 2) omega (translatedCube d ((n : ℤ) + 2) z) with hsigmaDef
+  have hsigma : 0 < sigma := by
+    rw [hsigmaDef, show (n : ℤ) + 2 = ((n + 2 : ℕ) : ℤ) by omega,
+      ← Section6Covariance.tailCoefficientCubeAverage_translatePotentialSample]
+    exact tailCoefficientCubeAverage_pos M L (n + 2) (translatePotentialSample z omega)
+  -- the transported local error
+  have hlocal :=
+    SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.localHomogenizationError_two_le_cutoffAnchor_of_closedContainment
+      M hs L n omega y z hcontain hgoodEvent
+  have hanchor := hgood M s hs L (n + 2) omega z hgoodEvent
+  set E : ℝ := Ch02.HomogenizationErrorOnCube Q (s / 6) .infinity (.finite 2) A
+    (scalarMatrix (d := d) sigma) with hEdef
+  have hE0 : 0 ≤ E := by
+    rw [hEdef]
+    unfold Ch02.HomogenizationErrorOnCube Ch02.HomogenizationError
+      Ch02.HomogenizationErrorFinite
+    refine Real.rpow_nonneg (tsum_nonneg fun j ↦ mul_nonneg ?_ ?_) _
+    · simpa [Ch02.geometricWeight_eq_old] using
+        (Homogenization.geometricWeight_nonneg (s := s / 6) (q := (2 : ℝ)) j
+          (by positivity))
+    · exact Real.rpow_nonneg
+        (Ch02.scaleResponseAtScale_infinity_nonneg Q
+          (sub_le_self _ (by exact_mod_cast Nat.zero_le j)) A
+          (scalarMatrix (d := d) sigma)) _
+  have hpow : (3 : ℝ) ^ (s / 8 * (4 : ℝ)) ≤ (3 : ℝ) ^ ((1 : ℝ) / 8) := by
+    refine Real.rpow_le_rpow_of_exponent_le (by norm_num) ?_
+    have := hs.2
+    linarith
+  have hEbound : E ≤
+      Real.sqrt (192 * (d : ℝ)) * ((3 : ℝ) ^ ((1 : ℝ) / 8) * C) := by
+    refine hlocal.trans ?_
+    refine mul_le_mul_of_nonneg_left ?_ (Real.sqrt_nonneg _)
+    have hC0 : (0 : ℝ) ≤ C := hC.le
+    have h1 : (3 : ℝ) ^ (s / 8 * (4 : ℝ)) *
+        section6HomogenizationError M (s / 8) L (n + 2) omega z ≤
+        (3 : ℝ) ^ (s / 8 * (4 : ℝ)) * C := by
+      refine mul_le_mul_of_nonneg_left hanchor (Real.rpow_nonneg (by norm_num) _)
+    refine h1.trans ?_
+    exact mul_le_mul_of_nonneg_right hpow hC0
+  -- `e.bound.Lambdas.by.Es` at `q = 2`
+  have hmax := localMaxWeightedEllipticity_le_error (d := d) Q A
+    (t := s / 6) (sigma := sigma) (by linarith) hsigma
+  have hcap6 : sigma * (Ch02.lambdaSq Q (s / 6) (.finite 2) A)⁻¹ ≤
+      2 * (d : ℝ) *
+        ((Real.sqrt (192 * (d : ℝ)) * ((3 : ℝ) ^ ((1 : ℝ) / 8) * C)) ^ 2 + 1) := by
+    refine (le_max_right _ _).trans (hmax.trans ?_)
+    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+    have hsq : E ^ 2 ≤
+        (Real.sqrt (192 * (d : ℝ)) * ((3 : ℝ) ^ ((1 : ℝ) / 8) * C)) ^ 2 := by
+      exact pow_le_pow_left₀ hE0 hEbound 2
+    linarith
+  exact lambdaSq_cap_mono Q A (by linarith) (by linarith [hs.2]) hsigma.le hcap6
+
+end
+
+end SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBelowCutoff.Rows
