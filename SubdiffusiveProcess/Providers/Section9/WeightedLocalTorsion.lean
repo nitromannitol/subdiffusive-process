@@ -1,0 +1,46 @@
+module
+
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section9SupportInput
+@[expose] public section
+
+set_option autoImplicit false
+open Homogenization MeasureTheory ProbabilityTheory MarkovProcess Set
+open SubdiffusiveProcess.CoarseGrainingVocab.Section9SupportInput
+open SubdiffusiveProcess.CoarseGrainingVocab.Section9GoodCube
+open scoped ENNReal NNReal
+noncomputable section
+
+/-!
+# Provider: the torsion projection of the good-cube package
+
+Provider for the local torsion lemma v1
+(`mfd:in-deterministic` and `s.tightness`).
+
+The theorem below carries the statement of
+`SubdiffusiveProcess/Section9/WeightedLocalTorsion.lean` verbatim (byte-identical up to the declaration name); the proof is the
+anonymous constructor projecting the seven fields of `LocalTorsionEstimates`.
+-/
+
+theorem SubdiffusiveProcess.Providers.Section9.weighted_local_torsion {d : ℕ}
+    (a : Vec d → ℝ) (law : Kernel (Vec d) (Path d)) (clock : ℝ → ℝ)
+    (p0 cc CC : ℝ) (U : Cube d) (Qfam Afam : Set (Cube d))
+    (hgood : LocalTorsionEstimates a law clock p0 cc CC U Qfam Afam) :
+    (∀ x ∈ middleQuarter U,
+        ENNReal.ofReal (cc * clock U.2) ≤ meanExit law (cubeSet U) x) ∧
+      (∀ x ∈ cubeSet U, meanExit law (cubeSet U) x ≤ ENNReal.ofReal (CC * clock U.2)) ∧
+      (∀ B' ∈ Qfam, ∀ B ∈ Qfam, CompactlyInside B' B →
+        (∀ x ∈ cubeSet B', ENNReal.ofReal (cc * clock B.2) ≤ meanExit law (cubeSet B) x) ∧
+          (∀ x ∈ cubeSet B, meanExit law (cubeSet B) x ≤ ENNReal.ofReal (CC * clock B.2))) ∧
+      (ENNReal.ofReal cc * weightedMeasure a (cubeSet U) ≤
+        weightedMeasure a (middleQuarter U)) ∧
+      (∀ B' ∈ Qfam, ∀ B ∈ Qfam, CompactlyInside B' B →
+        ENNReal.ofReal cc * weightedMeasure a (cubeSet B) ≤ weightedMeasure a (cubeSet B')) ∧
+      (∀ A ∈ Afam,
+        ENNReal.ofReal cc * weightedMeasure a (cubeSet U) ≤ weightedMeasure a (cubeSet A)) ∧
+      (∀ Q ∈ Qfam, ∀ f : H10Function (cubeSet Q),
+        lpSq a (cubeSet Q) p0 f.toH1Function.toFun ≤
+          ENNReal.ofReal CC * weightedMeasure a (cubeSet Q) ^ (-(1 - 2 / p0)) *
+            ENNReal.ofReal (clock Q.2 * energy a (cubeSet Q) f.toH1Function))
+:=
+  ⟨hgood.exit_lower, hgood.exit_upper, hgood.descendant, hgood.mass_quarter,
+    hgood.mass_descendant, hgood.mass_overlap, hgood.sobolev⟩

@@ -1,0 +1,13 @@
+{
+  "challenge_module": "SubdiffusiveProcessAudit.QuantitativeHomogenization.Challenge",
+  "solution_module": "SubdiffusiveProcessAudit.QuantitativeHomogenization.Solution",
+  "theorem_names": [
+    "SubdiffusiveProcessAudit.QuantitativeHomogenization.theoremB"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "enable_nanoda": true
+}

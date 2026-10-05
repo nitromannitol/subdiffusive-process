@@ -1,0 +1,13 @@
+{
+  "challenge_module": "SubdiffusiveProcessAudit.ProcessConvergence.Challenge",
+  "solution_module": "SubdiffusiveProcessAudit.ProcessConvergence.Solution",
+  "theorem_names": [
+    "SubdiffusiveProcessAudit.ProcessConvergence.theoremA"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "enable_nanoda": true
+}

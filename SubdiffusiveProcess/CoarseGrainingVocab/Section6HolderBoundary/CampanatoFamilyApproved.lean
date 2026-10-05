@@ -1,0 +1,123 @@
+module
+
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBoundary.BoundaryCampanatoFull
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderInterior.CampanatoFamily
+
+@[expose] public section
+
+/-!
+# Boundary Hölder printed Campanato family at the stated powers
+
+The boundary Campanato ladder is read at a base scale `n`, while its output
+window may be any `n'` between that base and the top scale.  The two stopped
+rows restrict from `n` to `n'`; the explicit rate-inflation hypothesis pays for
+the shorter interval.  This is the boundary counterpart of the interior
+collection's printed family and retains all three boundary datum terms.
+-/
+
+namespace SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBoundary
+
+open SubdiffusiveProcess.CoarseGrainingVocab
+open Homogenization hiding Vec
+open scoped BigOperators
+
+noncomputable section
+attribute [local instance] Classical.propDecidable
+
+/-- The printed boundary Campanato family: the stopped rows are based at `n`,
+while the output window scale `n'` and top scale are free above it. -/
+theorem exists_boundaryCampanatoFamily_of_approved_powers (d : ℕ) [NeZero d]
+    (hExcess : Section6HolderBoundaryRows.BoundaryHolderExcessDecayInput d) :
+    ∃ Cstep K Citer : ℝ, 0 < Cstep ∧ 0 < K ∧ 0 < Citer ∧
+      ∀ M : _root_.SubdiffusiveProcess.Model.GMCModel d,
+      64 * M.delta ^ 2 ≤ Section6Stopping.holderStoppingS →
+      ∀ epsilon ∈ Set.Icc
+          (Section6Stopping.holderStoppingS⁻¹ * M.delta ^ 2) 1,
+      ∀ lambda lambda' : ℝ, 0 ≤ lambda' → M.delta ^ 2 ≤ lambda' →
+        epsilon ^ 8 ≤ lambda' →
+      ∀ k : ℕ, 0 < k → ∀ theta ∈ Set.Ioo (0 : ℝ) 1,
+      theta ^ k ∈ Set.Ioo (0 : ℝ) (3 / 5) →
+      Cstep * ((3 : ℝ) ^ (-(k : ℝ) / 2) +
+        (3 : ℝ) ^ ((1 + (d : ℝ) / 2) * k) *
+          (1 / 4 : ℝ) ^ (-2 : ℝ) * epsilon) ≤ theta ^ k →
+      ∀ L domain n n' top : ℕ, n ≤ n' → n' < top → top + 5 ≤ domain →
+        domain ≤ L →
+      ∀ z ∈ cube d domain,
+      ∀ omega : _root_.SubdiffusiveProcess.Model.PotentialSample d,
+      (∑ i ∈ Finset.Icc n domain,
+          accumulatedError M none i z Section6Stopping.holderStoppingS omega) ≤
+        lambda * ((domain : ℝ) - (n : ℝ)) →
+      (∑ i ∈ Finset.Icc n domain,
+          ((1 : ℝ) - if omega ∈ goodEvent M none i z epsilon
+            Section6Stopping.holderStoppingS then 1 else 0)) <
+        1 + lambda * ((domain : ℝ) - (n : ℝ)) →
+      lambda * ((domain : ℝ) - (n : ℝ)) ≤
+        lambda' * ((domain : ℝ) - (n' : ℝ)) →
+      ∀ exponential : ℝ, 0 ≤ exponential →
+      (∀ j ∈ Finset.Icc n' top,
+        tailCoefficientCubeAverage M L domain omega /
+            tailAverage M L (j + 2) omega (translatedCube d (j + 2 : ℕ) z) ≤
+          exponential) →
+      ∀ (u h : H1Function (openCubeSet (originCube d domain)))
+        (g : Vec d → Vec d),
+      IsDirichletSolutionOn (_root_.SubdiffusiveProcess.Model.aCutoff M L omega)
+          (originCube d domain) u h g →
+      MemHolder (cube d domain) (1 / 2) g →
+      MemHolder (cube d domain) (1 / 2) h.grad →
+      let Keps := Cstep * (3 : ℝ) ^ ((1 + (d : ℝ) / 2) * k) *
+        (1 / 4 : ℝ) ^ (-2 : ℝ) * K
+      let Kforce := Cstep * (1 / 4 : ℝ) ^ (-8 : ℝ) *
+        (3 : ℝ) ^ ((1 + (d : ℝ) / 2) * k) *
+        Section6ExcessDecay.fractionalHolderConst d * Real.sqrt (1 / 4 : ℝ)
+      let Kmean := (1 / 4 : ℝ) ^ (-3 / 2 : ℝ)
+      let Kboundary := Cstep * (1 / 4 : ℝ) ^ (-7 / 2 : ℝ) *
+        (3 : ℝ) ^ ((1 + (d : ℝ) / 2) * k)
+      let topForcing := (tailCoefficientCubeAverage M L domain omega)⁻¹ *
+        (3 : ℝ) ^ ((domain : ℝ) / 2) *
+        holderSeminormOn (cube d domain) (1 / 2) g
+      let topBoundary := (3 : ℝ) ^ ((domain : ℝ) / 2) *
+        holderSeminormOn (cube d domain) (1 / 2) h.grad
+      let boundaryTop :=
+        if BoundaryTouches (truncatedCube d domain top z) (cube d domain) then
+          (1 : ℝ) else 0
+      let Ebudget := 3 * Keps * lambda' * ((domain : ℝ) - (n' : ℝ) + 1)
+      let Dbudget :=
+        (5 / 2 : ℝ) * Kforce *
+            (3 : ℝ) ^ (-(((domain : ℝ) - (top : ℝ)) / 2)) *
+            exponential * topForcing +
+          Kmean * Ebudget * vectorSupNormOn (cube d domain) h.grad * boundaryTop +
+          (5 / 2 : ℝ) * Kboundary *
+            (3 : ℝ) ^ (-(((domain : ℝ) - (top : ℝ)) / 2)) *
+            topBoundary * boundaryTop
+      let Abar := Citer * (k + 1) *
+          ((k : ℝ) + 2 + lambda' * ((domain : ℝ) - (n' : ℝ))) +
+        Citer * Ebudget
+      (3 : ℝ) ^ (-(n' : ℤ)) *
+          normalizedL2On (truncatedCube d domain n' z)
+            (fun x ↦ u.toFun x - averageOn (truncatedCube d domain n' z) u.toFun) ≤
+        Real.exp Abar *
+          ((3 : ℝ) ^ (-(top : ℤ)) *
+              normalizedL2On (truncatedCube d domain top z)
+                (fun x ↦ u.toFun x - averageOn
+                  (truncatedCube d domain top z) u.toFun) + Dbudget) := by
+  obtain ⟨Cstep, K, Citer, hCstep, hK, hCiter, hfull⟩ :=
+    exists_boundaryHolderCampanatoFull d hExcess
+  refine ⟨Cstep, K, Citer, hCstep, hK, hCiter, ?_⟩
+  intro M hdelta epsilon heps lambda lambda' hlam0 hlamd hlame k hk theta htheta
+    hthetak hstep L domain n n' top hnn hn'top htopdom hdomL z hz omega
+    herr hfail hinfl exponential hexp0 hexp u h g hsol hg hh
+  refine hfull M hdelta epsilon heps lambda' hlam0 hlamd hlame k hk theta htheta
+    hthetak hstep L domain n' top hn'top htopdom hdomL z hz omega ?_ ?_
+    exponential hexp0 hexp u h g hsol hg hh
+  · exact le_trans
+      (Section6HolderInterior.accumulatedError_row_restrict M
+        Section6Stopping.holderStoppingS n n' domain z omega hnn)
+      (le_trans herr hinfl)
+  · have hrestrict := Section6HolderInterior.failure_row_restrict M epsilon
+      Section6Stopping.holderStoppingS n (n' - n) domain z omega
+    rw [show n + (n' - n) = n' by omega] at hrestrict
+    linarith
+
+end
+
+end SubdiffusiveProcess.CoarseGrainingVocab.Section6HolderBoundary

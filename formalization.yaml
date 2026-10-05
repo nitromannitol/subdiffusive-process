@@ -1,0 +1,264 @@
+version: "v0.4"
+
+project:
+  name: "subdiffusive-process"
+  description: >-
+    A Lean 4 formalization of the paper "Anomalous scaling limit of a Brownian
+    particle in a log-correlated potential" by Armstrong, Bou-Rabee and Kuusi: the
+    subdiffusive scaling limit of a Brownian particle whose drift is the gradient of
+    a log-correlated random potential (Theorem A, in its introduction form and in its
+    precise quenched form), quantitative homogenization of the Dirichlet problem
+    uniformly in the infrared cutoff (Theorem B), and large-scale Hölder regularity
+    with a Liouville theorem (Theorem C), together with the supporting coarse-graining,
+    elliptic-regularity and Markov-process theory. The theorems hold for every random
+    environment satisfying the paper's standing assumptions (a GMCModel).
+    The development builds on Mathlib and on the public CoarseGraining and
+    MarkovProcess libraries. The three headline theorems are independently checked by
+    the comparator pairs under SubdiffusiveProcessAudit/.
+  authors:
+    - "Scott Armstrong"
+    - "Ahmed Bou-Rabee"
+    - "Tuomo Kuusi"
+  responsible_maintainers:
+    - "Ahmed Bou-Rabee"
+    - "Scott Armstrong"
+    - "Tuomo Kuusi"
+  license: "Apache-2.0"
+
+classification:
+  arxiv: ["math.PR", "math.AP"]
+  msc2020: ["60K37", "35R60", "82B28"]
+
+sources:
+  - title: "Anomalous scaling limit of a Brownian particle in a log-correlated potential"
+    authors:
+      - "Scott Armstrong"
+      - "Ahmed Bou-Rabee"
+      - "Tuomo Kuusi"
+    type: "paper"
+    relationship: "formalizes"
+    location: "paper/"
+    note: >-
+      The paper under formalization, preprint forthcoming. Its source, bibliography,
+      figures and compiled PDF are included under paper/, pinned to 2806669bc133074d5ff0f3059608f172abf8fda0;
+      CORRESPONDENCE.md maps the statements of that version to Lean declarations, and
+      its labels were checked against that version. Theorems A, B and C of the
+      introduction are formalized as stated there.
+    license: "authors' copyright; included with the authors' permission, publication licence not yet chosen"
+    author_endorsement: "participated"
+
+related_formalizations:
+  - id: "https://github.com/scottnarmstrong/CoarseGraining"
+    relationship: "builds-on"
+    note: >-
+      Scott Armstrong and Tuomo Kuusi, CoarseGraining (public Lean library of
+      homogenization theory), a git dependency pinned to commit
+      310d1a6bab3ba2d398cdaffec32f3c9d4b5a24be.
+  - id: "https://github.com/scottnarmstrong/MarkovProcess"
+    relationship: "builds-on"
+    note: >-
+      Scott Armstrong, MarkovProcess (public Lean library of continuous-time Markov
+      processes and Feller semigroups), a git dependency pinned to commit
+      666cda029098a1106914fc9fa7abd1727573284a.
+
+status:
+  scope: >-
+    Theorem A of the introduction (SubdiffusiveProcess.process_convergence) and its
+    precise quenched form (SubdiffusiveProcess.process_convergence_precise), Theorem B
+    (SubdiffusiveProcess.quantitative_homogenization) and Theorem C
+    (SubdiffusiveProcess.anomalous_holder_regularity), each for every GMCModel in
+    dimension at least two at the disorder strength stated in the theorem, together
+    with the supporting results of the paper. CORRESPONDENCE.md maps the statements of the
+    paper to Lean declarations and marks those that have no formal counterpart. Not
+    formalized: the identification of the diffusion with the solution of the stochastic
+    differential equation.
+  sorry_count: 0
+  sorry_count_scope: "SubdiffusiveProcess library only"
+  comparator_challenge_sorry_count: 3
+  sorry_in_definitions: 0
+  axioms:
+    - "propext"
+    - "Classical.choice"
+    - "Quot.sound"
+  main_results:
+    - declaration: "SubdiffusiveProcess.process_convergence"
+      file: "SubdiffusiveProcess/MainTheorems.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "SubdiffusiveProcessAudit/ProcessConvergence/comparator.json"
+      literature_dependencies: []
+    - declaration: "SubdiffusiveProcess.process_convergence_precise"
+      file: "SubdiffusiveProcess/MainTheorems.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      literature_dependencies: []
+    - declaration: "SubdiffusiveProcess.quantitative_homogenization"
+      file: "SubdiffusiveProcess/MainTheorems.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "SubdiffusiveProcessAudit/QuantitativeHomogenization/comparator.json"
+      literature_dependencies: []
+    - declaration: "SubdiffusiveProcess.anomalous_holder_regularity"
+      file: "SubdiffusiveProcess/MainTheorems.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "SubdiffusiveProcessAudit/AnomalousHolderRegularity/comparator.json"
+      literature_dependencies: []
+
+automation:
+  methods:
+    - method: "agent"
+      models:
+        - "claude-opus-5"
+        - "claude-sonnet-5"
+        - "claude-opus-5-5"
+        - "claude-sonnet-5-5"
+        - "claude-haiku-4-5"
+        - "claude-fable-5-1"
+      framework: "Claude Code (Anthropic)"
+      tool_setup: >-
+        Proof development, review and release preparation with Lean builds under
+        leanprover/lean4:v4.35.0-rc2 with Mathlib at the same version, and the public
+        CoarseGraining and MarkovProcess libraries at pinned revisions.
+      cost:
+        wall_time: "not tracked"
+        spend_usd: "not tracked"
+        hardware: "local Linux machine"
+      prompting_notes: >-
+        Human-directed work on author-specified statements. The formal statements follow
+        the paper; deviations are listed under fidelity.divergences.
+    - method: "agent"
+      models:
+        - "gpt-5.6-luna"
+        - "gpt-6-luna"
+        - "gpt-6-astra"
+        - "gpt-5.6-sol"
+        - "gpt-6-sol"
+        - "gpt-6.1-sol"
+        - "glm-5.3"
+        - "glm-5.3-flash"
+      framework: "Codex CLI (OpenAI models; the Z.ai GLM models were run through the same CLI)"
+      tool_setup: >-
+        Lean proof development, porting to the module system and the pinned toolchain,
+        and release preparation under the same toolchain and dependency pins. The
+        glm-5.3 and glm-5.3-flash models of Z.ai were run through the Codex CLI.
+      cost:
+        wall_time: "not tracked"
+        spend_usd: "not tracked"
+        hardware: "local Linux machine"
+      prompting_notes: >-
+        Human-directed work; each task fixed the statements to be proved and forbade
+        changing them.
+    - method: "agent"
+      models:
+        - "not recorded"
+      framework: "ChatGPT (OpenAI), web interface"
+      tool_setup: >-
+        Some proofs and ports were drafted in the web interface; the model version was not
+        recorded. Every result was checked by the Lean kernel in the project's builds.
+      cost:
+        wall_time: "not tracked"
+        spend_usd: "not tracked"
+        hardware: "web service"
+      prompting_notes: >-
+        Human-directed work on author-specified statements.
+    - method: "agent"
+      models:
+        - "deepseek-v4.1-flash"
+        - "leanstral"
+      framework: "API-hosted models driven by project scripts"
+      tool_setup: >-
+        Auxiliary proof search, small typed proof obligations and independent
+        read-only checks of statements against the paper. DeepSeek was used through the
+        Ollama cloud API.
+      cost:
+        wall_time: "not tracked"
+        spend_usd: "not tracked"
+        hardware: "API-only"
+  spend_usd: "not tracked"
+  notes: >-
+    The Lean code was written with AI assistance under the direction of the authors, who
+    fixed the statements to be formalized. Every proof is checked by the Lean kernel and
+    Mathlib, and the library contains no sorry and no custom axiom. The three Mathlib-only
+    comparator challenge files (SubdiffusiveProcessAudit/*/Challenge.lean) each contain
+    exactly one intentional statement-level sorry, which the corresponding Solution.lean
+    proves and leanprover/comparator checks. The model versions listed above are the
+    ones recorded during the work; wall time and spend were not tracked.
+
+fidelity:
+  divergences: >-
+    Every theorem is stated for an arbitrary GMCModel (the paper's assumptions g1-g4 with
+    independent layers) in dimension at least two; the constructor
+    SubdiffusiveProcess.Model.nonempty_gmcModel_of_zeroLevelLaw produces a model from a
+    zero-level law. Theorems A and C hold for disorder at most a threshold depending on
+    the dimension, Theorem B(1) for disorder at most a threshold depending on the exponent,
+    the moment order and the dimension, and Theorem B(2) throughout the model's own range.
+    Local C^{1,1} regularity is part of the type of a potential, so it holds for every
+    sample. The formal process is the continuous Feller diffusion constructed from weak
+    elliptic resolvents and described by its analytic path laws; the identification with
+    the solution of the stochastic differential equation is proved in the paper only.
+    Theorem A uses versions defined in every environment (the limiting kernel is a
+    constant-path law, and a cutoff semigroup is the identity, outside a probability-one
+    event) with the paper's order of quantifiers. The cutoff process of index 0 is
+    clock-normalized by the factor ahom_0, which the physical time factor cancels. Cubes
+    use the sup norm and energies the Euclidean norm. Theorem B uses volume-normalized
+    componentwise duals of H^1_0 as negative norms and the sum of the L2 sizes of a
+    function, its gradient and its Hessian as the H^2 norm, and defines ahom_m as the
+    infimum over cube scales of the normalized trace of the expected coarse-grained matrix,
+    which equals the paper's limit because the sequence is nonincreasing. Theorem C gives
+    large-scale estimates above a random minimal scale and a Liouville theorem whose
+    conclusion is a constant continuous representative; it makes no claim about pointwise
+    Hölder regularity at microscopic scales. Real-valued definitions are total (division
+    by zero, Real.log 0, non-integrable integrals, non-summable series, ENNReal.toReal of
+    infinity and empty suprema all take conventional values), so analytic conclusions come
+    with the positivity, finiteness and integrability hypotheses stated in the
+    declarations. Some statements add explicit measurability or existence-and-uniqueness
+    conclusions that the paper leaves implicit. Statements of the paper with no formal
+    counterpart are marked Paper-only in CORRESPONDENCE.md; besides the stochastic
+    differential equation identification they are: none.
+
+review:
+  status: "agent-reviewed"
+  reviewers: []
+  notes: >-
+    Every proof is checked by the Lean kernel and Mathlib, and the three headline
+    statements are additionally replayed by independent kernels through
+    leanprover/comparator. The formal statements were compared with the paper by
+    AI-assisted reviews under the direction of the authors. This is not external peer
+    review.
+
+alignment:
+  namespace: "SubdiffusiveProcess"
+  statements:
+    - source: "Theorem A (introduction, t.A)"
+      lean: "SubdiffusiveProcess.process_convergence"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "proved"
+      note: "Comparator surface: SubdiffusiveProcessAudit/ProcessConvergence/."
+    - source: "Theorem A, precise form (t.scaling.limit)"
+      lean: "SubdiffusiveProcess.process_convergence_precise"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "proved"
+      note: "Quenched form from which Theorem A follows; its own axiom report, no separate comparator pair."
+    - source: "Theorem B (t.B)"
+      lean: "SubdiffusiveProcess.quantitative_homogenization"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "proved"
+      note: "Comparator surface: SubdiffusiveProcessAudit/QuantitativeHomogenization/."
+    - source: "Theorem C (t.C)"
+      lean: "SubdiffusiveProcess.anomalous_holder_regularity"
+      module: "SubdiffusiveProcess.MainTheorems"
+      status: "proved"
+      note: "Comparator surface: SubdiffusiveProcessAudit/AnomalousHolderRegularity/."
+    - source: "All numbered statements of the paper"
+      lean: "see CORRESPONDENCE.md"
+      module: "SubdiffusiveProcess.Paper"
+      status: "mapped"
+      note: "CORRESPONDENCE.md lists every theorem-like statement of the paper with its declaration, or marks it Paper-only."
+
+acknowledgements: >-
+  Built on Lean 4, Mathlib, Lake, the CoarseGraining and MarkovProcess libraries,
+  leanprover/comparator, NanoDa and con-ron. Scott Armstrong was supported by NSF grants
+  DMS-2000200 and DMS-2350340. Tuomo Kuusi was supported by the Academy of Finland and by
+  the European Research Council (ERC) under the European Union's Horizon 2020 research and
+  innovation programme (grant agreement No 818437).
