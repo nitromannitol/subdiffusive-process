@@ -1,0 +1,461 @@
+% amsart (the main paper) uses the class layout and the style guide's link colours;
+% article (the companion paper) keeps the layout below.
+\newif\ifamsartclass
+\makeatletter\@ifclassloaded{amsart}{\amsartclasstrue}{}\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ENCODING, FONTS & PAGE LAYOUT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% Suppress warning for missing small caps italic (scit) - substitute with small caps
+\DeclareFontShape{T1}{cmr}{m}{scit}{<->ssub*cmr/m/sc}{}
+
+\usepackage[margin=1in]{geometry}
+\geometry{letterpaper}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MATH PACKAGES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{amsmath,amsthm,amssymb,amsfonts}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{esint}
+\usepackage{xfrac}
+\usepackage{nicefrac}
+\usepackage{dsfont}
+\usepackage{upgreek}
+\usepackage{accents}
+
+% mathabx overwrites some symbols, so save and restore them
+\let\ring\undefined
+\let\olddiamond\diamond
+\let\oldsquare\square
+\usepackage{mathabx}
+\renewcommand{\square}{\oldsquare}
+\renewcommand{\diamond}{\olddiamond}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% TABLES, LISTS & TEXT UTILITIES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{paralist}
+\usepackage{enumitem}
+\usepackage{verbatim}
+\usepackage[normalem]{ulem}
+\usepackage{cancel}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% GRAPHICS, COLORS & HYPERLINKS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+
+\usepackage{tikz}
+\usepackage{pgf}
+\usetikzlibrary{calc}
+\usetikzlibrary{external}
+\tikzexternalize[prefix=tikz-figures/]
+
+% xr-hyper must precede hyperref (split of 2026-09-25; see tools/split/build.sh)
+\usepackage{xr-hyper}
+\usepackage[
+colorlinks=true,
+pdfstartview=FitV,
+linkcolor=blue,
+citecolor=blue,
+urlcolor=blue
+]{hyperref}
+\ifamsartclass
+\hypersetup{citecolor=PineGreen,linkcolor=RoyalBlue,urlcolor=BrickRed}
+\fi
+
+% Show label keys in margin (remove for final version)
+\providecommand*\showkeyslabelformat[1]{{\normalfont\tiny#1}}
+\usepackage[notref,notcite,color]{showkeys}
+\definecolor{labelkey}{rgb}{0,0,1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PAGE FORMATTING (titlesec must come before fancyhdr)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ifamsartclass\else
+\usepackage{titlesec}
+
+\newcommand{\addperiod}[1]{#1.}
+\titleformat{\section}{\centering\normalfont\Large}{\thesection.}{0.5em}{}
+\titleformat*{\subsection}{\bfseries}
+\titleformat{\subsubsection}[runin]{\normalfont\bfseries}{\thesubsubsection.}{0.5em}{\addperiod}
+\titleformat*{\paragraph}{\bfseries}
+\titleformat*{\subparagraph}{\large\bfseries}
+
+\usepackage[nottoc,notlot,notlof]{tocbibind}
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+
+\pagestyle{fancy}
+\fancyhf{}
+\newcommand{\sectiontitle}{}
+\newcommand{\subsectiontitle}{}
+\renewcommand{\sectionmark}[1]{%
+	\renewcommand{\sectiontitle}{\thesection\ #1}%
+	\renewcommand{\subsectiontitle}{}%
+	\markboth{\thesection\ #1}{\thesection\ #1}}
+\renewcommand{\subsectionmark}[1]{%
+	\renewcommand{\subsectiontitle}{\thesubsection\ #1}%
+	\markright{\thesubsection\ #1}}
+
+% For one-sided documents (default):
+\fancyhead[L]{\rightmark}
+\fancyhead[R]{\thepage}
+
+% For two-sided documents, uncomment these and add [twoside] to \documentclass:
+% \fancyhead[EL]{\thepage}
+% \fancyhead[ER]{\leftmark}
+% \fancyhead[OL]{\rightmark}
+% \fancyhead[OR]{\thepage}
+
+\setlength{\headheight}{14pt}
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% THEOREM ENVIRONMENTS & NUMBERING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\def\theequation{\thesection.\arabic{equation}}
+\numberwithin{equation}{section}
+\numberwithin{figure}{section}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\newtheorem{theoremA}{Theorem}
+\renewcommand{\thetheoremA}{\Alph{theoremA}}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{problem}{Problem}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MATH NOTATION: OPERATORS, DELIMITERS & ACCENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Operators
+\DeclareMathOperator{\Real}{Re}
+\renewcommand{\Re}{\Real}
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator*{\osc}{osc}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator{\size}{size}
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\ran}{ran}
+
+\newcommand*{\supp}{\ensuremath{\mathrm{supp\,}}}
+\newcommand*{\tr}{\ensuremath{\mathrm{trace\,}}}
+\renewcommand*{\div}{\ensuremath{\mathrm{div\,}}}
+\newcommand*{\curl}{\ensuremath{\mathrm{curl\,}}}
+\newcommand*{\ad}{\ensuremath{\mathrm{ad\,}}}
+\newcommand*{\op}{\ensuremath{\mathrm{op\,}}}
+
+\DeclareMathSymbol{\shortminus}{\mathbin}{AMSa}{"39}
+
+% Delimiters
+\DeclarePairedDelimiter{\snorm}{\llbracket}{\rrbracket}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\average}[1]{\left\langle#1\right\rangle}
+
+% Fix parentheses spacing
+\let\originalleft\left
+\let\originalright\right
+\renewcommand{\left}{\mathopen{}\mathclose\bgroup\originalleft}
+\renewcommand{\right}{\aftergroup\egroup\originalright}
+
+% Accents
+\newcommand\thickbar[1]{\accentset{\rule{.45em}{.6pt}}{#1}}
+\renewcommand{\bar}{\thickbar}
+\renewcommand{\hat}{\widehat}
+\renewcommand*{\tilde}{\widetilde}
+
+% Fix \oint
+\makeatletter
+\let\oldoint\oint
+\renewcommand{\oint}{\oldoint\nolimits}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MATH NOTATION: SPACES, LETTERS & SYMBOLS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Blackboard bold
+\newcommand*{\N}{\ensuremath{\mathbb{N}}}
+\newcommand*{\Z}{\ensuremath{\mathbb{Z}}}
+\newcommand*{\ZZ}{\ensuremath{\mathbb{Z}}}
+\newcommand*{\R}{\ensuremath{\mathbb{R}}}
+\newcommand*{\RR}{\ensuremath{\mathbb{R}}}
+\newcommand*{\C}{\ensuremath{\mathbb{C}}}
+\newcommand*{\TT}{\ensuremath{\mathbb{T}}}
+\newcommand*{\QQ}{\ensuremath{\mathbb{Q}}}
+\newcommand*{\Zd}{\ensuremath{\mathbb{Z}^d}}
+\newcommand*{\Rd}{\ensuremath{\mathbb{R}^d}}
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\ensuremath{\mathbb{P}}}
+
+% Calligraphic and script
+\renewcommand{\O}{\ensuremath{\mathcal{O}}}
+\newcommand{\OO}{\mathcal{O}}
+\newcommand*{\DD}{\mathscr{D}}
+\newcommand{\X}{\ensuremath{\mathcal{X}}}
+\newcommand{\Y}{\ensuremath{\mathcal{Y}}}
+\newcommand{\A}{\mathcal{A}}
+\renewcommand{\S}{\mathcal{S}}
+\newcommand{\T}{\mathcal{T}}
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\SW}{\mathcal{SW}}
+\newcommand{\RSZ}{\mathcal{R}}
+
+% Bold letters
+\renewcommand{\a}{\mathbf{a}}
+\renewcommand{\b}{\ensuremath{\mathbf{b}}}
+\newcommand{\f}{\mathbf{f}}
+\newcommand{\g}{\mathbf{g}}
+\newcommand{\h}{\mathbf{h}}
+\renewcommand{\k}{\mathbf{k}}
+\newcommand{\m}{\mathbf{m}}
+\newcommand{\s}{\mathbf{s}}
+\newcommand{\pp}{\mathbf{p}}
+\newcommand{\qq}{\mathbf{q}}
+\renewcommand{\tt}{\mathbf{t}}
+\newcommand{\vv}{\ensuremath{\mathbf{v}}}
+\newcommand{\G}{\mathbf{G}}
+\newcommand{\J}{\mathbf{J}}
+\newcommand{\K}{\mathbf{K}}
+\newcommand{\Rbf}{\mathbf{R}}
+\newcommand{\bfA}{\mathbf{A}}
+\newcommand{\bfB}{\mathbf{B}}
+\newcommand{\bfE}{\mathbf{E}_0}
+\newcommand{\bfG}{\mathbf{G}}
+\newcommand{\bfJ}{\mathbf{J}}
+\newcommand{\bfR}{\mathbf{R}}
+
+% Bold Greek
+\def\kk{{\boldsymbol{k}}}
+\def\aa{{\boldsymbol{\alpha}}}
+\def\bb{{\boldsymbol{\beta}}}
+\def\xx{\boldsymbol{x}}
+\def\yy{\boldsymbol{y}}
+\def\gb{\boldsymbol{g}}
+\def\lll{{\boldsymbol{\ell}}}
+\def\KK{\boldsymbol{K}}
+\def\XX{\boldsymbol{X}}
+\def\Chi{{\boldsymbol{\chi}}}
+\def\Eta{{\boldsymbol{\eta}}}
+\newcommand{\gammafun}{\mathbf{\Gamma}}
+\newcommand{\linear}{\boldsymbol{\ell}}
+
+% Homogenized quantities
+\newcommand{\ahom}{\bar{\a}}
+\newcommand{\bhom}{\bar{\mathbf{b}}}
+\newcommand{\shom}{\bar{\mathbf{s}}}
+\newcommand{\khom}{\bar{\mathbf{k}}}
+\newcommand{\ghom}{\bar{\mathbf{g}}}
+\newcommand{\hhom}{\bar{\mathbf{h}}}
+\newcommand{\thom}{\bar{\mathbf{t}}}
+\newcommand{\bfAhom}{\overline{\mathbf{A}}}
+\newcommand{\bfBhom}{\overline{\mathbf{B}}}
+\newcommand{\uhom}{u_{\mathrm{hom}}}
+
+% Subscript labels
+\newcommand{\per}{\mathrm{per}}
+\newcommand{\pot}{\mathrm{pot}}
+\newcommand{\sol}{\mathrm{sol}}
+\newcommand{\sym}{\mathrm{sym}}
+\renewcommand{\skew}{\mathrm{skew}}
+\newcommand{\pr}{\mathrm{par}}
+\newcommand{\loc}{\mathrm{loc}}
+\newcommand{\cent}{\mathrm{cen}}
+\newcommand{\data}{\mathrm{data}}
+
+% Identity matrices
+\newcommand*{\Id}{\ensuremath{\mathrm{I}_d}}
+\newcommand*{\Itwo}{\ensuremath{\mathrm{I}_2}}
+\newcommand*{\Itwod}{\ensuremath{\mathrm{I}_{2d}}}
+
+% Matrix spaces
+\newcommand{\Rsymp}{\R^{d\times d}_{\mathrm{sym},+}}
+\newcommand{\Rsym}{\R^{d\times d}_{\mathrm{sym}}}
+\newcommand{\Rskew}{\R^{d\times d}_{\mathrm{skew}}}
+
+% Function spaces
+\newcommand{\Lsol}{L^2_{\mathrm{sol}}}
+\newcommand{\Lsolo}{L^2_{\mathrm{sol,0}}}
+\newcommand{\Lpot}{L^2_{\mathrm{pot}}}
+\newcommand{\Lpoto}{L^2_{\mathrm{pot,0}}}
+\renewcommand{\L}{\underline{L}}
+
+% Miscellaneous
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ep}{\eps}
+\newcommand{\nep}{\hat{\eps}}
+\newcommand{\les}{\lesssim}
+\newcommand{\nf}{\nicefrac}
+\newcommand{\qand}{\quad \mbox{and} \quad}
+\newcommand{\qqand}{\qquad \mbox{and} \qquad}
+\newcommand{\md}[1]{\ (\text{mod}\ #1)}
+\newcommand{\Rbar}{\mathring{\overline R}}
+\renewcommand{\subset}{\subseteq}
+\renewcommand{\supset}{\supseteq}
+\newcommand{\cs}{\mathfrak{c}_s}
+\newcommand{\css}[1]{\mathfrak{c}_{#1}}
+\newcommand{\cstar}{c_*}
+\newcommand{\mstar}{m_*}
+\newcommand{\mstarstar}{m_{**}}
+\newcommand{\cgamma}{\upgamma}
+\newcommand{\redTheta}{\red{\Theta}}
+\newcommand{\gmcdelta}{\textcolor{blue}{\overline \delta}}
+\newcommand{\hsep}{\textcolor{blue}{\textsc{h}}}
+\newcommand{\blargh}{\red{\mathsf{[BLARGH]}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% SPECIALIZED NOTATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Negphantom machinery (for hat over H^{-1}, etc.)
+\makeatletter
+\newcommand{\negphantom}{\v@true\h@true\negph@nt}
+\newcommand{\neghphantom}{\v@false\h@true\negph@nt}
+\newcommand{\negph@nt}{\ifmmode\expandafter\mathpalette
+	\expandafter\mathnegph@nt\else\expandafter\makenegph@nt\fi}
+\newcommand{\makenegph@nt}[1]{%
+	\setbox\z@\hbox{\color@begingroup#1\color@endgroup}\finnegph@nt}
+\newcommand{\finnegph@nt}{%
+	\setbox\tw@\null
+	\ifv@ \ht\tw@\ht\z@\dp\tw@\dp\z@\fi
+	\ifh@\wd\tw@-\wd\z@\fi\box\tw@}
+\newcommand{\mathnegph@nt}[2]{%
+	\setbox\z@\hbox{$\m@th #1{#2}$}\finnegph@nt}
+\makeatother
+
+\newcommand{\Hminus}{\hat{\phantom{H}}\negphantom{H}H^{-1}}
+\newcommand{\Hminusul}{\hat{\phantom{H}}\negphantom{H}\underline{H}^{-1}}
+\newcommand{\Hminusuls}[1]{\hat{\phantom{H}}\negphantom{H}\underline{H}^{#1}}
+\newcommand{\Hminusulh}{\hat{\phantom{H}}\negphantom{H}\underline{H}^{-\nicefrac12}}
+\newcommand{\Wminus}{\hat{\phantom{W}}\negphantom{W}W^{-1}}
+\newcommand{\Wminusul}[2]{\hat{\phantom{W}}\negphantom{W}\underline{W}^{#1,#2}}
+\newcommand{\besov}[3]{\mathring{B}^{#1}_{#2,#3}}
+\newcommand{\Besov}[3]{\mathring{\phantom{B}}\negphantom{B}\underline{B}^{#1}_{#2,#3}}
+\newcommand{\Besovhat}[3]{\hat{\phantom{B}}\negphantom{B}\underline{B}^{#1}_{#2,#3}}
+\newcommand{\Jstarbar}{{\overline{J}}\negphantom{J}\phantom{J}^*}
+
+% Custom integrals
+\def\Xint#1{\mathchoice
+	{\XXint\displaystyle\textstyle{#1}}%
+	{\XXint\textstyle\scriptstyle{#1}}%
+	{\XXint\scriptstyle\scriptscriptstyle{#1}}%
+	{\XXint\scriptscriptstyle\scriptscriptstyle{#1}}%
+	\!\int}
+\def\XXint#1#2#3{{\setbox0=\hbox{$#1{#2#3}{\int}$}
+		\vcenter{\hbox{$#2#3$}}\kern-.5\wd0}}
+\def\ddashint{\Xint=}
+\def\fint{\Xint-}
+
+% Average sum
+\newcommand{\avsum}{\mathop{\mathpalette\avsuminner\relax}\displaylimits}
+\makeatletter
+\newcommand\avsuminner[2]{%
+	{\sbox0{$\m@th#1\sum$}%
+		\vphantom{\usebox0}%
+		\ooalign{%
+			\hidewidth
+			\smash{\,\rule[.23em]{8.8pt}{1.1pt} \relax}%
+			\hidewidth\cr
+			$\m@th#1\sum$\cr
+		}%
+	}%
+}
+\makeatother
+
+\newcommand{\avsumtext}{\mathop{\mathpalette\avsuminnerr\relax}\displaylimits}
+\makeatletter
+\newcommand\avsuminnerr[2]{%
+	{\sbox0{$\m@th#1\sum$}%
+		\vphantom{\usebox0}%
+		\ooalign{%
+			\hidewidth
+			\smash{\,\rule[.23em]{6pt}{0.7pt} \relax}%
+			\hidewidth\cr
+			$\m@th#1\sum$\cr
+		}%
+	}%
+}
+\makeatother
+
+% Cubes and lattice notation
+\newcommand{\cu}{\square}
+\newcommand{\cus}{%
+	\mathchoice
+	{\mathrel{\rotatebox[origin=c]{45}{$\square$}\!\!}}
+	{\mathrel{\rotatebox[origin=c]{45}{$\textstyle\square$}\!\!}}
+	{\mathrel{\rotatebox[origin=c]{45}{$\scriptstyle{\square}$}}}
+	{\mathrel{\rotatebox[origin=c]{45}{$\scriptscriptstyle{\square}$}}}}
+\newcommand{\avsumcube}[3]{\avsum_{#1 \in 3^{#2}\Zd\cap \cu_{#3}}}
+\newcommand{\maxcube}[3]{\max_{#1 \in 3^{#2}\Zd\cap \cu_{#3}}}
+\newcommand{\mincube}[3]{\min_{#1 \in 3^{#2}\Zd\cap \cu_{#3}}}
+\newcommand{\cubed}[3]{#1 \in 3^{#2}\Zd\cap \cu_{#3}}
+\newcommand{\spxfat}{\triangle^{\!\circ}}
+\newcommand{\spx}{\triangle}
+
+% Indicator function
+\DeclareMathAlphabet{\mathmybb}{U}{bbold}{m}{n}
+\newcommand{\indc}{{\mathmybb{1}}}
+\newcommand{\indicator}[1]{\indc\left\{ #1 \right\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PAPER-SPECIFIC & EDITING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Sans-serif notation for this paper
+\newcommand{\Tr}{\mathsf{T}}
+\newcommand{\Rt}{\mathsf{R}}
+\newcommand{\Dr}{\mathsf{D}}
+\newcommand{\Dt}{\tilde{\mathsf{D}}}
+\newcommand{\tl}{\mathsf{t}}
+\newcommand{\EthmB}{\mathsf{E}}
+\newcommand{\nueff}{\nu_{\mathrm{eff}}}
+
+% Author colors
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blu}[1]{\textcolor{blue}{#1}}
+\newcommand{\tuomo}[1]{\textcolor{magenta}{#1}}
+\newcommand{\scott}[1]{\textcolor{cyan}{#1}}
+\newcommand{\ahmed}[1]{\textcolor{purple}{#1}}
+
+% Cross-references from the main draft to the companion heat-kernel paper (split of
+% 2026-09-25). Active only for the job `multifractal'; tools/split/build.sh writes
+% heatkernel-xr.aux, the labels of heatkernel.aux not defined in the main draft.
+\makeatletter
+\edef\split@job{\jobname}
+\edef\split@main{\detokenize{multifractal}}
+\ifx\split@job\split@main
+  \externaldocument{heatkernel-xr}[heatkernel.pdf]
+\fi
+\makeatother

@@ -1,0 +1,161 @@
+name: Palomar comparator audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_manifest_sha256:
+        description: SHA256 of the exact candidate artifact manifest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  comparator:
+    name: ${{ matrix.pair }} — Lean, NanoDa, con-ron
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        # Conservative, initially unmeasured hosted estimates include artifact
+        # transfer and all kernels. Actual phase timings are saved in result.json.
+        include:
+          - pair: ProcessConvergence
+            estimate_minutes: 90
+          - pair: QuantitativeHomogenization
+            estimate_minutes: 60
+          - pair: AnomalousHolderRegularity
+            estimate_minutes: 90
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Prepare runner for independent exports
+        shell: bash
+        run: |
+          sudo sysctl -w vm.max_map_count=262144
+          # Ubuntu's user-namespace restriction prevents bubblewrap from
+          # bringing up loopback inside its isolated network namespace.
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y bubblewrap zstd
+          bwrap --unshare-all --ro-bind / / --dev /dev --proc /proc -- /bin/true
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghcup /usr/local/share/powershell \
+                      /usr/share/swift /usr/local/share/boost
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          sudo fallocate -l 12G /mnt/comparator-swap
+          sudo chmod 600 /mnt/comparator-swap
+          sudo mkswap /mnt/comparator-swap
+          sudo swapon /mnt/comparator-swap
+          df -h /
+      - name: Install exact Lean toolchain
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o "$RUNNER_TEMP/elan-init.sh"
+          bash "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Rehearsal only — verify exact pins through temporary URL rewrites
+        shell: bash
+        env:
+          DEPENDENCY_READ_TOKEN: ${{ secrets.DEPENDENCY_READ_TOKEN }}
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          python3 - <<'PYVERIFY'
+          import json, os, pathlib, subprocess, tempfile
+          expected = {
+              'CoarseGraining': 'df82db0a9e5ff2c11c5c6faa2777fd83bfdbb013',
+              'MarkovProcess': '814b0f8820c2da712eb79574ea7ca3be8db4b69d',
+          }
+          packages = {p['name']: p for p in json.loads(pathlib.Path('lake-manifest.json').read_text())['packages']}
+          if not os.environ.get('DEPENDENCY_READ_TOKEN'):
+              raise SystemExit('Rehearsal dependency-read secret absent')
+          with tempfile.TemporaryDirectory(prefix='dependency-rehearsal-', dir=os.environ['RUNNER_TEMP']) as td:
+              base = pathlib.Path(td)
+              askpass = base / 'askpass.py'
+              askpass.write_text("#!/usr/bin/env python3\nimport os,sys\nprint('x-access-token' if 'Username' in sys.argv[1] else os.environ['DEPENDENCY_READ_TOKEN'])\n")
+              askpass.chmod(0o700)
+              config = base / 'gitconfig'
+              config.write_text(''.join('[url "https://github.com/nitromannitol/' + n + '"]\n  insteadOf = https://github.com/scottnarmstrong/' + n + '\n' for n in expected))
+              env = dict(os.environ, GIT_CONFIG_GLOBAL=str(config), GIT_ASKPASS=str(askpass))
+              for name, revision in expected.items():
+                  url = 'https://github.com/scottnarmstrong/' + name
+                  if packages[name]['url'] != url or packages[name]['rev'] != revision:
+                      raise SystemExit('Unexpected manifest pin: ' + name)
+                  work = base / name
+                  subprocess.run(['git', 'init', str(work)], check=True, env=env)
+                  subprocess.run(['git', '-C', str(work), '-c', 'credential.helper=', '-c', 'http.extraheader=',
+                                  'fetch', '--depth=1', url, revision], check=True, env=env)
+                  actual = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'FETCH_HEAD'], text=True, env=env).strip()
+                  if actual != revision:
+                      raise SystemExit('Rehearsal dependency revision mismatch: ' + name)
+                  print(name + ': rehearsal fetch verified at ' + actual + '; temporary URL rewrite used')
+          PYVERIFY
+      - name: Download immutable prebuilt inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          # The full source and dependency build bundle is supplied by the
+          # independent local build; hosted jobs never rebuild production.
+          artifact_tag=$(python3 -c 'import json; print(json.load(open(".github/prebuilt.json"))["tag"])')
+          mkdir -p "$RUNNER_TEMP/prebuilt"
+          gh release download "$artifact_tag" --repo "$GITHUB_REPOSITORY" \
+            --dir "$RUNNER_TEMP/prebuilt" --pattern "manifest-${GITHUB_SHA}.json" --pattern 'prebuilt.tar.zst.part*'
+      - name: Validate source, toolchain, pins and every artifact hash
+        env:
+          MANIFEST_SHA256: ${{ inputs.artifact_manifest_sha256 }}
+        shell: bash
+        run: |
+          python3 scripts/prebuilt_artifacts.py restore --root . \
+            --manifest "$RUNNER_TEMP/prebuilt/manifest-${GITHUB_SHA}.json" --manifest-sha256 "$MANIFEST_SHA256"
+          # Only compressed transport inputs are removed; oleans are retained.
+          rm "$RUNNER_TEMP"/prebuilt/prebuilt.tar.zst.part*
+      - name: Fresh pair elaboration and independent kernel replay
+        shell: bash
+        run: |
+          echo 'Conservative estimate: ${{ matrix.estimate_minutes }} minutes; job budget: 180 minutes.'
+          mkdir -p '.lake/comparator-logs/palomar/${{ matrix.pair }}'
+          # Keep resource evidence in the live console as well as the artifact
+          # if a hosted runner stops before it can upload the final verdict.
+          (
+            while true; do
+              date -u
+              free -h
+              df -h /
+              ps -eo pid,ppid,comm,rss,vsz --sort=-rss | head -12 || true
+              sleep 60
+            done
+          ) | tee -a '.lake/comparator-logs/palomar/${{ matrix.pair }}/resources.log' &
+          monitor_pid=$!
+          trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
+          python3 scripts/run_prebuilt_pair.py --pair '${{ matrix.pair }}'
+      - name: Retain exact per-pair outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-${{ matrix.pair }}-${{ github.sha }}
+          path: .lake/comparator-logs/palomar/${{ matrix.pair }}/
+          if-no-files-found: warn
+  all-comparators:
+    name: Every comparator pair passed
+    needs: comparator
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every matrix job to succeed
+        env:
+          MATRIX_RESULT: ${{ needs.comparator.result }}
+        run: test "$MATRIX_RESULT" = success

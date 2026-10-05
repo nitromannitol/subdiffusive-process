@@ -1,0 +1,161 @@
+module
+
+public import SubdiffusiveProcess.CoarseGrainingVocab.NegativeBesovSupport
+public import SubdiffusiveProcess.CoarseGrainingVocab.RestrictionIndependence
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section5Support.SimplexGapRigidity
+public import SubdiffusiveProcess.CoarseGrainingVocab.Section5Support.SparseLayerCoefficient
+
+@[expose] public section
+
+
+
+
+namespace SubdiffusiveProcess.CoarseGrainingVocab.Section5Support
+
+open MeasureTheory ProbabilityTheory Homogenization
+open _root_.SubdiffusiveProcess.Model
+
+noncomputable section
+
+variable {d : ℕ}
+
+/-! ## Geometry: separated balls -/
+
+private theorem euclideanNorm_add_le (u v : Vec d) :
+    euclideanNorm (u + v) ≤ euclideanNorm u + euclideanNorm v := by
+  rw [euclideanNorm_eq_norm_ofVec, euclideanNorm_eq_norm_ofVec,
+    euclideanNorm_eq_norm_ofVec]
+  change ‖WithLp.toLp 2 (u + v)‖ ≤ ‖WithLp.toLp 2 u‖ + ‖WithLp.toLp 2 v‖
+  rw [WithLp.toLp_add]
+  exact norm_add_le _ _
+
+private theorem euclideanNorm_le_dim_mul_norm (u : Vec d) :
+    euclideanNorm u ≤ (d : ℝ) * ‖u‖ := by
+  simpa only [euclideanNorm_eq_norm_ofVec] using HilbertVec.norm_ofVec_le_mul_norm u
+
+private theorem euclideanNorm_sub_le_sub_add_sub (u v w : Vec d) :
+    euclideanNorm (u - w) ≤ euclideanNorm (u - v) + euclideanNorm (v - w) := by
+  have h : u - w = (u - v) + (v - w) := by ring
+  rw [h]
+  exact euclideanNorm_add_le _ _
+
+/-- Two ambient balls whose centers are separated by more than
+`sqrt d + 2 d ε` are separated at the exact (g1) range. -/
+theorem potentialRangeSeparated_ball {x y : Vec d} {eps : ℝ}
+    (hsep : Real.sqrt (d : ℝ) + 2 * (d : ℝ) * eps ≤ euclideanNorm (x - y)) :
+    PotentialRangeSeparated (Metric.ball x eps) (Metric.ball y eps) := by
+  intro u v hu hv
+  have hxu : euclideanNorm (x - u) ≤ (d : ℝ) * eps := by
+    refine le_trans (euclideanNorm_le_dim_mul_norm (x - u)) ?_
+    have : ‖x - u‖ ≤ eps := by
+      rw [← dist_eq_norm]
+      exact le_of_lt (by simpa [Metric.mem_ball, dist_comm] using hu)
+    exact mul_le_mul_of_nonneg_left this (Nat.cast_nonneg d)
+  have hyv : euclideanNorm (v - y) ≤ (d : ℝ) * eps := by
+    refine le_trans (euclideanNorm_le_dim_mul_norm (v - y)) ?_
+    have : ‖v - y‖ ≤ eps := by
+      rw [← dist_eq_norm]
+      exact le_of_lt (by simpa [Metric.mem_ball] using hv)
+    exact mul_le_mul_of_nonneg_left this (Nat.cast_nonneg d)
+  have htri : euclideanNorm (x - y) ≤
+      euclideanNorm (x - u) + (euclideanNorm (u - v) + euclideanNorm (v - y)) :=
+    le_trans (euclideanNorm_sub_le_sub_add_sub x u y)
+      (by
+        have := euclideanNorm_sub_le_sub_add_sub u v y
+        linarith)
+  linarith
+
+/-! ## Pointwise independence of two layer-zero evaluations -/
+
+/-- **Pointwise (g1) at the layer-zero law.**  Two point evaluations of the
+unit-scale potential at strictly range-separated points are independent under
+the layer-zero law. -/
+theorem indepFun_potentialField_eval_of_sqrt_dim_lt (M : GMCModel d)
+    {x y : Vec d} (hxy : Real.sqrt (d : ℝ) < euclideanNorm (x - y)) :
+    IndepFun (fun g : PotentialField d => g x) (fun g : PotentialField d => g y)
+      (zeroPotentialLaw M.P).toMeasure := by
+  have : NeZero d := ⟨by have := M.shellPrefix.dimension; omega⟩
+  set eps : ℝ :=
+    (euclideanNorm (x - y) - Real.sqrt (d : ℝ)) / (2 * (d : ℝ) + 2) with heps
+  have hdpos : (0 : ℝ) < 2 * (d : ℝ) + 2 := by positivity
+  have heps_pos : 0 < eps := by
+    rw [heps]
+    exact div_pos (by linarith) hdpos
+  have hsep : Real.sqrt (d : ℝ) + 2 * (d : ℝ) * eps ≤ euclideanNorm (x - y) := by
+    have hle : 2 * (d : ℝ) * eps ≤ euclideanNorm (x - y) - Real.sqrt (d : ℝ) := by
+      rw [heps, mul_div_assoc']
+      rw [div_le_iff₀ hdpos]
+      nlinarith [Nat.cast_nonneg (α := ℝ) d,
+        sub_nonneg.mpr hxy.le]
+    linarith
+  have hindep := M.G1.range_dependence (Metric.ball x eps) (Metric.ball y eps)
+    measurableSet_ball measurableSet_ball (potentialRangeSeparated_ball hsep)
+  have hx : @Measurable (PotentialField d) ℝ
+      (_root_.SubdiffusiveProcess.Model.PotentialField.localSigma (Metric.ball x eps)) _ (fun g => g x) :=
+    measurable_eval_potentialFieldLocalSigma_of_mem_isOpen Metric.isOpen_ball
+      (Metric.mem_ball_self heps_pos)
+  have hy : @Measurable (PotentialField d) ℝ
+      (_root_.SubdiffusiveProcess.Model.PotentialField.localSigma (Metric.ball y eps)) _ (fun g => g y) :=
+    measurable_eval_potentialFieldLocalSigma_of_mem_isOpen Metric.isOpen_ball
+      (Metric.mem_ball_self heps_pos)
+  exact indep_of_indep_of_le_right
+    (indep_of_indep_of_le_left hindep hx.comap_le) hy.comap_le
+
+/-! ## Transport to the sequence law -/
+
+private theorem zeroPotentialLaw_toMeasure_eq_map (M : GMCModel d) :
+    (zeroPotentialLaw M.P).toMeasure =
+      Measure.map (fun omega : PotentialSample d => omega 0) M.P.toMeasure := by
+  rw [zeroPotentialLaw, potentialMarginalLaw, ProbabilityMeasure.toMeasure_map]
+
+/-- **The pointwise range-dependence transport.**  For strictly range-separated
+points, the two unit-scale shell evaluations are independent under the sequence
+law.  This is the input the paper uses. -/
+theorem indepFun_shell_eval_of_sqrt_dim_lt (M : GMCModel d) {x y : Vec d}
+    (hxy : Real.sqrt (d : ℝ) < euclideanNorm (x - y)) :
+    IndepFun (fun omega : PotentialSample d => omega 0 x)
+      (fun omega : PotentialSample d => omega 0 y) M.P.toMeasure := by
+  have hmap := indepFun_potentialField_eval_of_sqrt_dim_lt M hxy
+  rw [zeroPotentialLaw_toMeasure_eq_map M] at hmap
+  have hpull := (indep_comap_iff_indep_map
+    (mu := M.P.toMeasure) (f := fun omega : PotentialSample d => omega 0)
+    (m₁ := MeasurableSpace.comap (fun g : PotentialField d => g x) inferInstance)
+    (m₂ := MeasurableSpace.comap (fun g : PotentialField d => g y) inferInstance)
+    (measurable_potentialCoordinate 0).aemeasurable
+    (_root_.SubdiffusiveProcess.Model.PotentialField.measurable_eval x).comap_le
+    (_root_.SubdiffusiveProcess.Model.PotentialField.measurable_eval y).comap_le).2 hmap
+  rwa [MeasurableSpace.comap_comp, MeasurableSpace.comap_comp] at hpull
+
+/-! ## The unconditional Step 1 endgame -/
+
+/-- **Unconditional form of the Step 1 contradiction.**  Two unit-scale shell
+evaluations at strictly range-separated points cannot agree almost surely.
+This removes the independence hypothesis from
+`not_ae_eq_shell_of_indepFun`, so the only remaining input
+is the geometric passage from the Euler equation
+to the pointwise identity `g_0(0) = g_0(tp)`. -/
+theorem not_ae_eq_shell_of_sqrt_dim_lt (M : GMCModel d) {x y : Vec d}
+    (hxy : Real.sqrt (d : ℝ) < euclideanNorm (x - y)) :
+    ¬ ((fun omega : PotentialSample d => omega 0 x) =ᵐ[M.P.toMeasure]
+      fun omega : PotentialSample d => omega 0 y) :=
+  not_ae_eq_shell_of_indepFun M x y (indepFun_shell_eval_of_sqrt_dim_lt M hxy)
+
+/-- **The contradiction in the paper's own variable.**  Step 1 reaches
+`B_0(0) = B_0(tp)` with `|tp| > sqrt d`; since `B_0 = exp (g_0 - tau^2)` is a
+strictly monotone function of the shell value, this is impossible.  This is the
+exact statement the equality-case analysis has to refute. -/
+theorem not_ae_eq_shellFactor_of_sqrt_dim_lt (M : GMCModel d) {x y : Vec d}
+    (hxy : Real.sqrt (d : ℝ) < euclideanNorm (x - y)) :
+    ¬ ((fun omega : PotentialSample d => shellFactor M 0 omega x)
+      =ᵐ[M.P.toMeasure]
+      fun omega : PotentialSample d => shellFactor M 0 omega y) := by
+  intro heq
+  refine not_ae_eq_shell_of_sqrt_dim_lt M hxy ?_
+  filter_upwards [heq] with omega homega
+  have := Real.exp_eq_exp.1 homega
+  linarith
+
+end
+
+end SubdiffusiveProcess.CoarseGrainingVocab.Section5Support
+
