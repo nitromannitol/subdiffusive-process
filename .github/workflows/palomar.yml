@@ -1,0 +1,287 @@
+name: Palomar comparator audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_manifest_sha256:
+        description: SHA256 of the exact candidate artifact manifest
+        required: true
+        type: string
+      pairs:
+        description: Comma-separated comparator pairs, or all. Only an all-pairs run can be a release receipt.
+        required: false
+        default: all
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: Select comparator pairs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pairs.outputs.matrix }}
+    steps:
+      - id: pairs
+        env:
+          PAIRS: ${{ inputs.pairs }}
+        run: |
+          python3 - <<'PYPLAN'
+          import json, os
+          estimates = {'ProcessConvergence': 90, 'QuantitativeHomogenization': 60,
+                       'AnomalousHolderRegularity': 90}
+          wanted = (os.environ.get('PAIRS') or 'all').strip() or 'all'
+          chosen = list(estimates) if wanted == 'all' else [p.strip() for p in wanted.split(',')]
+          if not chosen or any(p not in estimates for p in chosen) or len(set(chosen)) != len(chosen):
+              raise SystemExit('Unknown or repeated comparator pair: ' + wanted)
+          matrix = {'include': [{'pair': p, 'estimate_minutes': estimates[p]} for p in chosen]}
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('matrix=' + json.dumps(matrix) + '\n')
+          PYPLAN
+  comparator:
+    name: ${{ matrix.pair }} — Lean, NanoDa, con-ron
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      # The pairs come from the plan job: all three unless a dispatch names fewer.
+      # Hosted estimates include artifact transfer and all kernels; actual phase
+      # timings are saved in result.json.
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Prepare runner for independent exports
+        shell: bash
+        run: |
+          sudo sysctl -w vm.max_map_count=262144
+          # Ubuntu's user-namespace restriction prevents bubblewrap from
+          # bringing up loopback inside its isolated network namespace.
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y bubblewrap zstd
+          bwrap --unshare-all --ro-bind / / --dev /dev --proc /proc -- /bin/true
+          df -h /
+          # Preinstalled toolchains this job never uses (it needs system python3, gh, zstd
+          # and the Lean toolchain it installs itself).
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghcup /usr/local/share/powershell \
+                      /usr/share/swift /usr/local/share/boost \
+                      /opt/hostedtoolcache /usr/lib/jvm /usr/local/julia* \
+                      /usr/lib/google-cloud-sdk /opt/az /opt/microsoft \
+                      /usr/local/share/chromium /opt/google
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
+          sudo du -xsh /usr/* /opt/* /var/lib/* /var/cache/* "$HOME"/* 2>/dev/null | sort -h | tail -12 || true
+          # The largest kernel replay needs more memory than the runner's 7.8 GiB. /mnt is
+          # part of the root disk on these runners, so there is one pool of free space. The
+          # restored build, the exports and the fresh audit modules take 18 GiB of it
+          # (measured) and 21 GiB are kept; the rest becomes swap.
+          root_gb=$(df --output=avail -BG / | tail -1 | tr -dc '0-9')
+          swap_gb=$((root_gb - 21))
+          if [ "$swap_gb" -gt 40 ]; then swap_gb=40; fi
+          if [ "$swap_gb" -ge 4 ]; then
+            sudo fallocate -l "${swap_gb}G" /comparator-swap
+            sudo chmod 600 /comparator-swap
+            sudo mkswap /comparator-swap
+            sudo swapon /comparator-swap
+          fi
+          swapon --show
+          free -h
+          df -h /
+      - name: Install exact Lean toolchain
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o "$RUNNER_TEMP/elan-init.sh"
+          bash "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Verify public dependency pins without credentials or URL rewrites
+        shell: bash
+        env:
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_CONFIG_GLOBAL: /dev/null
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          python3 - <<'PYVERIFY'
+          import json, os, pathlib, subprocess, tempfile
+          expected = {
+              'CoarseGraining': ('https://github.com/scottnarmstrong/CoarseGraining',
+                                '310d1a6bab3ba2d398cdaffec32f3c9d4b5a24be'),
+              'MarkovProcess': ('https://github.com/scottnarmstrong/MarkovProcess',
+                               '666cda029098a1106914fc9fa7abd1727573284a'),
+          }
+          packages = {p['name']: p for p in json.load(open('lake-manifest.json'))['packages']}
+          for name, (url, revision) in expected.items():
+              pin = packages[name]
+              if (pin['url'], pin['rev']) != (url, revision):
+                  raise SystemExit('Unexpected public dependency pin: ' + name)
+              with tempfile.TemporaryDirectory(prefix='public-pin-', dir=os.environ['RUNNER_TEMP']) as td:
+                  subprocess.run(['git', 'init', td], check=True)
+                  subprocess.run(['git', '-C', td, '-c', 'credential.helper=',
+                                  '-c', 'http.extraheader=', 'fetch', '--depth=1', url, revision], check=True)
+                  actual = subprocess.check_output(['git', '-C', td, 'rev-parse', 'FETCH_HEAD'], text=True).strip()
+                  if actual != revision:
+                      raise SystemExit('Fetched public revision mismatch: ' + name)
+                  print(name + ': credential-free public fetch verified at ' + actual)
+          PYVERIFY
+      - name: Download immutable prebuilt inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          # The full source and dependency build bundle is supplied by the
+          # independent local build; hosted jobs never rebuild production.
+          artifact_tag=$(python3 -c 'import json; print(json.load(open(".github/prebuilt.json"))["tag"])')
+          mkdir -p "$RUNNER_TEMP/prebuilt"
+          gh release download "$artifact_tag" --repo "$GITHUB_REPOSITORY" \
+            --dir "$RUNNER_TEMP/prebuilt" --pattern "manifest-${GITHUB_SHA}.json" --pattern 'prebuilt.tar.zst.part*'
+      - name: Validate source, toolchain, pins and every artifact hash
+        env:
+          MANIFEST_SHA256: ${{ inputs.artifact_manifest_sha256 }}
+        shell: bash
+        run: |
+          python3 scripts/prebuilt_artifacts.py restore --root . \
+            --manifest "$RUNNER_TEMP/prebuilt/manifest-${GITHUB_SHA}.json" --manifest-sha256 "$MANIFEST_SHA256"
+          # Only compressed transport inputs are removed; oleans are retained.
+          rm "$RUNNER_TEMP"/prebuilt/prebuilt.tar.zst.part*
+      - name: Fresh pair elaboration and independent kernel replay
+        timeout-minutes: 330
+        shell: bash
+        run: |
+          echo 'Conservative estimate: ${{ matrix.estimate_minutes }} minutes (swap-backed); step limit: 330 minutes.'
+          logdir='.lake/comparator-logs/palomar/${{ matrix.pair }}'
+          mkdir -p "$logdir"
+          # Keep resource evidence in the live console as well as the artifact
+          # if a hosted runner stops before it can upload the final verdict.
+          (
+            while true; do
+              date -u
+              free -h
+              swapon --show=NAME,SIZE,USED || true
+              cat /proc/pressure/memory || true
+              sudo dmesg 2>/dev/null | grep -iE 'out of memory|oom-kill|killed process' | tail -3 || true
+              df -h /
+              ps -eo pid,ppid,comm,rss,vsz --sort=-rss | head -12 || true
+              sleep 60
+            done
+          ) | tee -a "$logdir/resources.log" &
+          monitor_pid=$!
+          # Peak memory of every checker. `lake comparator` runs its kernels one after
+          # another (con-ron, NanoDa, then Lean's own); the sampler records the peak of
+          # each and any moment at which two were alive together, and drops the page
+          # cache when the last kernel has exited.
+          python3 -u - "$logdir" <<'PYSAMPLER' &
+          import json, os, subprocess, sys, time
+          logdir = sys.argv[1]
+          WATCH = ('con-ron', 'nanoda_bin', 'leanchecker', 'leanexport', 'lake', 'lean')
+          KERNELS = ('con-ron', 'nanoda_bin', 'leanchecker')
+          peaks = {}
+          system = {'min_mem_available_kib': None, 'max_swap_used_kib': 0}
+          concurrent = []
+          heavy_before = False
+          def status(pid):
+              fields = {}
+              with open('/proc/%s/status' % pid) as stream:
+                  for line in stream:
+                      key, _, value = line.partition(':')
+                      if key in ('VmRSS', 'RssAnon', 'VmSwap'):
+                          fields[key] = int(value.split()[0])
+              return fields
+          def sample():
+              alive = {}
+              for pid in os.listdir('/proc'):
+                  if not pid.isdigit():
+                      continue
+                  try:
+                      with open('/proc/%s/comm' % pid) as stream:
+                          name = stream.read().strip()
+                      if name not in WATCH:
+                          continue
+                      fields = status(pid)
+                  except OSError:
+                      continue
+                  entry = alive.setdefault(name, [0, 0])
+                  entry[0] += fields.get('VmRSS', 0)
+                  entry[1] += fields.get('RssAnon', 0) + fields.get('VmSwap', 0)
+              return alive
+          def meminfo():
+              values = {}
+              with open('/proc/meminfo') as stream:
+                  for line in stream:
+                      key, _, value = line.partition(':')
+                      values[key] = int(value.split()[0])
+              return values
+          def gib(kib):
+              return '%.2f' % (kib / 1048576)
+          tick = 0
+          while True:
+              now = time.strftime('%H:%M:%SZ', time.gmtime())
+              alive = sample()
+              for name, (rss, anon_swap) in alive.items():
+                  best = peaks.setdefault(name, {'rss_kib': 0, 'anon_plus_swap_kib': 0,
+                                                 'rss_at': '', 'anon_plus_swap_at': ''})
+                  if rss > best['rss_kib']:
+                      best['rss_kib'], best['rss_at'] = rss, now
+                  if anon_swap > best['anon_plus_swap_kib']:
+                      best['anon_plus_swap_kib'], best['anon_plus_swap_at'] = anon_swap, now
+              kernels = sorted(n for n in alive if n in KERNELS)
+              if len(kernels) > 1 and kernels not in concurrent:
+                  concurrent.append(kernels)
+              heavy = bool(kernels)
+              if heavy_before and not heavy:
+                  subprocess.run(['sudo', 'sh', '-c', 'sync; echo 3 > /proc/sys/vm/drop_caches'], check=False)
+              heavy_before = heavy
+              info = meminfo()
+              available = info.get('MemAvailable', 0)
+              swap_used = info.get('SwapTotal', 0) - info.get('SwapFree', 0)
+              if system['min_mem_available_kib'] is None or available < system['min_mem_available_kib']:
+                  system['min_mem_available_kib'] = available
+              system['max_swap_used_kib'] = max(system['max_swap_used_kib'], swap_used)
+              tick += 1
+              if tick % 15 == 0:
+                  with open(os.path.join(logdir, 'memory-peaks.json'), 'w') as stream:
+                      json.dump({'peaks': peaks, 'system': system, 'concurrent_kernel_checkers': concurrent,
+                                 'sampled_every_seconds': 2,
+                                 'note': 'anon_plus_swap is RssAnon + VmSwap of the process (all processes of that name)'},
+                                stream, indent=2)
+              if tick % 30 == 0:
+                  line = '; '.join('%s %s/%s' % (n, gib(p['anon_plus_swap_kib']), gib(p['rss_kib']))
+                                   for n, p in sorted(peaks.items()))
+                  print('peak memory GiB (anon+swap/rss): ' + line + '; machine: min available '
+                        + gib(system['min_mem_available_kib'] or 0) + ', max swap used '
+                        + gib(system['max_swap_used_kib'])
+                        + ('; CONCURRENT KERNELS ' + str(concurrent) if concurrent else ''), flush=True)
+              time.sleep(2)
+          PYSAMPLER
+          sampler_pid=$!
+          trap 'kill "$monitor_pid" "$sampler_pid" 2>/dev/null || true' EXIT
+          python3 scripts/run_prebuilt_pair.py --pair '${{ matrix.pair }}'
+      - name: Retain exact per-pair outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-${{ matrix.pair }}-${{ github.sha }}
+          path: .lake/comparator-logs/palomar/${{ matrix.pair }}/
+          if-no-files-found: warn
+  all-comparators:
+    name: Every comparator pair passed
+    needs: comparator
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every matrix job to succeed
+        env:
+          MATRIX_RESULT: ${{ needs.comparator.result }}
+        run: test "$MATRIX_RESULT" = success

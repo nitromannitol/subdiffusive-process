@@ -1,0 +1,935 @@
+module
+public import Mathlib
+
+/-!
+# Scaling limit in a log-correlated potential (Theorem A, paper label `t.A`)
+
+Mathlib-only statement of Theorem A. Fix `d ≥ 2`. There is `δ₀(d) > 0` such that for every model
+`M : GMCModel d` of disorder `0 < δ ≤ δ₀` (independent layers `g_k` with the exact triadic scaling
+and the assumptions (g1)–(g4) of the paper) there are `C < ∞`, `η > 0` and a continuous,
+conservative, strong Markov process `Z` in a random environment, with quenched laws `K(ω, x)`,
+such that:
+
+* **(i) Convergence.** For every `x`, the annealed law of `(3^{−N} X_{3^{2N}t/ahom_N})_{t ≥ 0}`
+  with `X_0 = 3^N x` converges to the annealed law of `Z` started at `x`.
+* **(ii) Reversible measure.** Almost surely `Z` is reversible for a measure `μ` that is singular
+  with respect to Lebesgue measure.
+* **(iii) Anomalous scaling.** `E[E_x σ_r] ≤ C r^{2+η}` for `r ∈ (0, 1]`, where `σ_r` is the exit
+  time from the cube of side `r` centered at the starting point; and for every `x`, almost surely,
+  almost every path has `limsup_{t↓0} t^{−γ} |Z_t − Z_0| = ∞` for every `γ > 1/(2+η)`.
+  In dimension two one can take `η = τ²/log 3`.
+* **(iv) Non-Gaussian marginals.** Almost surely, for every `x` and `t > 0`, the law of `Z_t` is
+  absolutely continuous with respect to `μ` and not Gaussian.
+
+## How the objects in the statement are specified
+
+`X` is the diffusion with generator `a⁻¹∇·(a∇)`, `a = exp(Σ_{k ≥ 0} (g_k − g_k(0)))`; it is not a
+named object here. The environment `ω` is the bilateral sequence of independent layers `ω j`
+(`j ∈ ℤ`, with the law of `g_0(3^{−j}·)`); the layers `ω j`, `j ≥ 0`, are the paper's `g_j`, and
+the layers `j < 0` are the finer scales that appear after rescaling space by `3^{−N}`. `H ω` is
+the anchored sum of the layers `j ≥ 1`. For `N ∈ ℕ`, `KN N (ω, ·)` is the path law of the cutoff
+diffusion with coefficient `c_N = ahom_N⁻¹ ρ_N` and speed density
+`ρ_N = exp(H + Σ_{j=0}^{N} ω(−j) − (N+1)τ²)`, that is with generator `ahom_N⁻¹ ρ_N⁻¹ ∇·(ρ_N ∇)`;
+`ahom_N` is the infimum over cube scales `n` of `(1/d) Σᵢ E[eᵢ·a_N(𝒞ₙ)eᵢ]`, with `eᵢ·a_N(𝒞ₙ)eᵢ`
+the cell-problem energy `min_{w ∈ H¹₀(𝒞ₙ)} ⨍ a_N |eᵢ + ∇w|²` (the paper's variational formula for
+the coarse-grained matrix of a symmetric coefficient); these values are nonincreasing in `n`
+(subadditivity), so the infimum is the paper's limit.
+
+* *Clock normalization.* `KN 0` is the paper's diffusion `X` run at speed `1/ahom₀` (its generator
+  carries the factor `ahom₀⁻¹`), so `3^{−N} X_{3^{2N}t/ahom_N}` is the path of `KN 0` rescaled by
+  `3^{−N}` in space and by the factor `ahom₀ · 3^{2N}/ahom_N` in time (`physicalTimeFactor`).
+* *Weak-resolvent encoding.* A cutoff diffusion is specified through its resolvent: `D` is a
+  positive family on `C₀(ℝᵈ)` with `‖D_μ f‖ ≤ ‖f‖/μ`, the resolvent identity and dense range (so
+  it generates a Feller semigroup), and on every bounded open convex set `W` the function `D_μ f`
+  is the `H¹(W)` weak solution of `μρu − ∇·(c∇u) = ρf`. A continuous weak solution that vanishes
+  at infinity is zero (the difference of two such resolvent families is one), so `c` and `ρ`
+  determine `D`, hence the semigroup and the path law; the paper constructs the diffusion from
+  its resolvent in the same way. The finite-dimensional distributions of `KN N (ω, ·)` are those
+  of the semigroup `PN N ω`, which fixes the law on continuous paths.
+* *σ-algebras.* The explicit `MeasurableSpace` and `BorelSpace` arguments for `C(ℝᵈ, ℝ)` say that
+  it carries its Borel σ-algebra, and path space `C(ℝ≥0, ℝᵈ)` carries its Borel σ-algebra.
+
+## How this differs from the wording of the paper
+
+Every difference adds a conclusion or restates a hypothesis in an equivalent or weaker form.
+
+1. *Extra conclusions.* The quenched laws are weakly continuous in the starting point (the Feller
+   property); the cutoff diffusions exist for every `N` and not only `N = 0`; and the reversible
+   measure is identified: `μ = e^H · (chaos measure)`, where the speed measures `ρ_N dx` converge
+   vaguely to `μ` and the normalized fine-scale exponentials converge to the chaos measure. `μ` is
+   nonzero because the marginals of `Z` are probability measures that are absolutely continuous
+   with respect to it. For `N ≥ 1` the cutoff diffusions `KN N` are only specified, not compared
+   with `K`: the quenched convergence of `KN N` to `K` in the paper's precise form (Theorem
+   `t.scaling.limit`) is not part of Theorem A, and (i) is the annealed convergence.
+2. *Sample space and (g2).* A model is a law `P` on sequences of regular potentials
+   (`ℕ → PotentialField d`, each layer `C¹` with locally Lipschitz derivative), so "almost surely
+   `C^{1,1}_loc`" is built into the sample space. The size in (g2) is `‖g‖_∞ + ‖∇g‖_∞ + Lip(∇g)`
+   on `(−1/2, 1/2)ᵈ`, with the maximum norm on space and its dual norm on gradients, as in the
+   paper.
+3. *Range of dependence (g1).* Independence is imposed on the σ-algebras generated by integrals of
+   the field against bounded measurable test functions with compact support that vanish outside
+   `U` (resp. `V`), for measurable `U`, `V` at Euclidean distance at least `√d`. These are
+   contained in the σ-algebras generated by the values of the field on `U` and `V`, so the
+   hypothesis is not stronger than the paper's.
+4. *Conservative semigroup.* The semigroup `P ω` whose finite-dimensional distributions are those
+   of `K(ω, ·)` is required to be conservative, which expresses "conservative" for `Z`.
+
+Only Mathlib is imported. The sole intentional `sorry` is the proof of the final theorem; the
+separate Solution proves the same statement from the library.
+-/
+
+@[expose] public section
+set_option autoImplicit false
+noncomputable section
+namespace SubdiffusiveProcessAudit.ProcessConvergence
+open scoped BigOperators
+namespace Homogenization
+/-- The coordinate space ℝᵈ, with its sup-norm topology. -/
+abbrev Vec (d : ℕ) :=
+  Fin d → ℝ
+/-- Real d-by-d matrices acting on the coordinate space. -/
+abbrev Mat (d : ℕ) :=
+  Matrix (Fin d) (Fin d) ℝ
+/-- The Euclidean scalar product, expressed as a sum over coordinates. -/
+def vecDot {d : ℕ} (x y : Homogenization.Vec d) : ℝ :=
+  ∑ i, x i * y i
+/-- The squared Euclidean norm. -/
+def vecNormSq {d : ℕ} (x : Homogenization.Vec d) : ℝ :=
+  vecDot x x
+/-- The Euclidean norm, as the square root of the scalar product. -/
+noncomputable def euclideanNorm {d : ℕ} (x : Homogenization.Vec d) : ℝ :=
+  Real.sqrt (vecNormSq x)
+end Homogenization
+open _root_.SubdiffusiveProcessAudit.ProcessConvergence.Homogenization Topology
+/-- A scalar field with a continuous derivative and locally Lipschitz derivative. -/
+def SubdiffusiveProcess.Model.PotentialField (d : ℕ) :=
+  { p : C(Homogenization.Vec d, ℝ) × C(Homogenization.Vec d, Homogenization.Vec d →L[ℝ] ℝ) //
+    (∀ x, HasFDerivAt p.1 (p.2 x) x) ∧
+      ∀ K : Set (Homogenization.Vec d), IsCompact K → ∃ C : NNReal, LipschitzOnWith C p.2 K }
+namespace SubdiffusiveProcess.Model
+open _root_.SubdiffusiveProcessAudit.ProcessConvergence.Homogenization MeasureTheory Topology
+noncomputable instance potentialFieldTopologicalSpace (d : ℕ) :
+    TopologicalSpace (PotentialField d) :=
+  TopologicalSpace.induced Subtype.val inferInstance
+noncomputable instance potentialFieldMeasurableSpace (d : ℕ) : MeasurableSpace (PotentialField d) :=
+  borel (PotentialField d)
+namespace PotentialField
+variable {d : ℕ}
+instance : CoeFun (PotentialField d) (fun _ ↦ Homogenization.Vec d → ℝ) :=
+  ⟨fun g ↦ g.1.1⟩
+/-- The continuous derivative stored with a potential field. -/
+def deriv (g : PotentialField d) : C(Homogenization.Vec d, Homogenization.Vec d →L[ℝ] ℝ) :=
+  g.1.2
+theorem hasFDerivAt (g : PotentialField d) (x : Homogenization.Vec d) :
+    HasFDerivAt g (deriv g x) x :=
+  g.2.1 x
+end PotentialField
+end SubdiffusiveProcess.Model
+namespace Homogenization
+/-- An orthogonal coordinate permutation with independently chosen coordinate
+signs. -/
+def IsSignedPermutationMatrix {d : ℕ} (R : Mat d) : Prop :=
+  ∃ σ : Equiv.Perm (Fin d),
+    ∃ s : Fin d → ℝ, (∀ i, s i = 1 ∨ s i = -1) ∧ ∀ i j, R i j = if i = σ j then s j else 0
+end Homogenization
+namespace SubdiffusiveProcess.Model.PotentialField
+variable {d : ℕ}
+/-- Precomposition of a linear functional with a linear map, as a continuous linear map. -/
+noncomputable def precomp (A : Homogenization.Vec d →L[ℝ] Homogenization.Vec d) :
+    (Homogenization.Vec d →L[ℝ] ℝ) →L[ℝ] (Homogenization.Vec d →L[ℝ] ℝ) :=
+  (ContinuousLinearMap.compL ℝ (Homogenization.Vec d) (Homogenization.Vec d) ℝ).flip A
+/-- The potential `x ↦ g (A x + z)` with its derivative `x ↦ ∇g (A x + z) ∘ A`: the pullback of a
+regular potential by an affine map. -/
+noncomputable def pullback (A : Homogenization.Vec d →L[ℝ] Homogenization.Vec d)
+    (z : Homogenization.Vec d) (g : PotentialField d) : PotentialField d :=
+  ⟨(⟨fun x ↦ g (A x + z), g.1.1.continuous.comp (A.continuous.add continuous_const)⟩,
+      ⟨fun x ↦ precomp A (deriv g (A x + z)),
+        (precomp A).continuous.comp
+          ((deriv g).continuous.comp (A.continuous.add continuous_const))⟩),
+    by
+    constructor
+    · intro x
+      show HasFDerivAt (fun x ↦ g (A x + z)) ((deriv g (A x + z)).comp A) x
+      exact (g.hasFDerivAt (A x + z)).comp x (A.hasFDerivAt.add_const z)
+    · intro K hK
+      obtain ⟨C, hC⟩ :=
+        g.2.2 ((fun x ↦ A x + z) '' K) (hK.image (A.continuous.add continuous_const))
+      have hT : LipschitzWith ‖A‖₊ (fun x ↦ A x + z) :=
+        (A.lipschitzWith.add (LipschitzWith.const z)).weaken (by simp)
+      exact
+        ⟨‖precomp A‖₊ * (C * ‖A‖₊),
+          (precomp A).lipschitzWith.comp_lipschitzOnWith
+            (hC.comp hT.lipschitzOnWith (Set.mapsTo_image _ K))⟩⟩
+/-- Translation `x ↦ g (x + z)` of a regular potential. -/
+noncomputable def translate (z : Homogenization.Vec d) (g : PotentialField d) : PotentialField d :=
+  pullback (ContinuousLinearMap.id ℝ (Homogenization.Vec d)) z g
+/-- Pullback by the inverse triadic dilation `x ↦ 3⁻ᵏ x`. -/
+noncomputable def triadicScale (k : ℕ) (g : PotentialField d) : PotentialField d :=
+  pullback (((3 : ℝ) ^ k)⁻¹ • ContinuousLinearMap.id ℝ (Homogenization.Vec d)) 0 g
+/-- Matrix action on vectors as a continuous linear map. -/
+noncomputable def matVecContinuousLinearMap (R : Mat d) :
+    Homogenization.Vec d →L[ℝ] Homogenization.Vec d :=
+  ⟨Matrix.toLin' R, (Matrix.toLin' R).continuous_of_finiteDimensional⟩
+/-- The regular potential `x ↦ g (R x)` obtained by a signed coordinate permutation `R`. -/
+noncomputable def rotate (R : Mat d) (_hR : IsSignedPermutationMatrix R) (g : PotentialField d) :
+    PotentialField d :=
+  pullback (matVecContinuousLinearMap R) 0 g
+/-- Negation of a regular potential field. -/
+noncomputable def negate (g : PotentialField d) : PotentialField d :=
+  ⟨(-g.1.1, -g.1.2), fun x ↦ (g.hasFDerivAt x).neg, fun K hK ↦
+    by
+    obtain ⟨C, hC⟩ := g.2.2 K hK
+    exact ⟨C, by simpa using hC.neg⟩⟩
+end SubdiffusiveProcess.Model.PotentialField
+/-- A sequence of regular potential layers indexed by nonnegative integers. -/
+abbrev SubdiffusiveProcess.Model.PotentialSample (d : ℕ) :=
+  ℕ → SubdiffusiveProcess.Model.PotentialField d
+open MeasureTheory ProbabilityTheory
+/-- The marginal probability law of one potential layer. -/
+noncomputable def SubdiffusiveProcess.Model.potentialMarginalLaw {d : ℕ}
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) (k : ℕ) :
+    ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialField d) :=
+  P.map (fun omega => omega k)
+/-- The probability law of the layer at scale zero. -/
+noncomputable def SubdiffusiveProcess.Model.zeroPotentialLaw {d : ℕ}
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) :
+    ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialField d) :=
+  SubdiffusiveProcess.Model.potentialMarginalLaw P 0
+/-- Dimension and disorder bounds, layer independence and exact triadic marginal
+scaling. -/
+structure SubdiffusiveProcess.Model.ShellLawPrefix (d : ℕ) (delta : ℝ)
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) : Prop where
+  dimension : 2 ≤ d
+  delta_pos : 0 < delta
+  delta_le_half : delta ≤ (1 : ℝ) / 2
+  independent :
+    iIndepFun (fun k : ℕ ↦ fun ω : SubdiffusiveProcess.Model.PotentialSample d ↦ ω k)
+      P.toMeasure
+  marginal_scaling :
+    ∀ k : ℕ,
+      SubdiffusiveProcess.Model.potentialMarginalLaw P k =
+        (SubdiffusiveProcess.Model.zeroPotentialLaw P).map
+          (SubdiffusiveProcess.Model.PotentialField.triadicScale k)
+/-- The local σ-algebra on potentials generated by the integrals `∫ g φ` against bounded
+measurable test functions `φ` with compact support that vanish outside `U`. -/
+def SubdiffusiveProcess.Model.PotentialField.localSigma {d : ℕ}
+    (U : Set (Homogenization.Vec d)) :
+    MeasurableSpace (SubdiffusiveProcess.Model.PotentialField d) :=
+  MeasurableSpace.generateFrom
+    {s |
+      ∃ φ : Homogenization.Vec d → ℝ,
+        Measurable φ ∧
+          (∃ C : ℝ, ∀ x, |φ x| ≤ C) ∧
+            HasCompactSupport φ ∧
+              Function.support φ ⊆ U ∧
+                ∃ t : Set ℝ,
+                  MeasurableSet t ∧
+                    s =
+                      (fun g : SubdiffusiveProcess.Model.PotentialField d =>
+                          ∫ x, g x * φ x ∂volume) ⁻¹'
+                        t}
+/-- Assumption (g1): integrability, mean zero, stationarity and finite-range
+independence. -/
+structure SubdiffusiveProcess.Model.ShellLawG1 (d : ℕ)
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) : Prop where
+  integrable :
+    ∀ x : Homogenization.Vec d,
+      Integrable (fun ω : SubdiffusiveProcess.Model.PotentialSample d ↦ ω 0 x)
+        P.toMeasure
+  mean_zero :
+    ∀ x : Homogenization.Vec d,
+      ∫ ω : SubdiffusiveProcess.Model.PotentialSample d, ω 0 x ∂P.toMeasure = 0
+  stationary :
+    ∀ z : Homogenization.Vec d,
+      Measure.map (SubdiffusiveProcess.Model.PotentialField.translate z)
+          (SubdiffusiveProcess.Model.zeroPotentialLaw P).toMeasure =
+        (SubdiffusiveProcess.Model.zeroPotentialLaw P).toMeasure
+  range_dependence :
+    ∀ (U V : Set (Homogenization.Vec d)),
+      MeasurableSet U →
+        MeasurableSet V →
+          (∀ ⦃x y : Homogenization.Vec d⦄,
+              x ∈ U → y ∈ V → Real.sqrt (d : ℝ) ≤ euclideanNorm (x - y)) →
+            Indep (SubdiffusiveProcess.Model.PotentialField.localSigma U)
+              (SubdiffusiveProcess.Model.PotentialField.localSigma V)
+              (SubdiffusiveProcess.Model.zeroPotentialLaw P).toMeasure
+namespace Homogenization
+/-- A triadic cube specified by its integer scale and lattice center. -/
+structure TriadicCube (d : ℕ) where
+  scale : ℤ
+  index : Fin d → ℤ
+/-- The side-length factor 3 to the cube's integer scale. -/
+noncomputable def cubeScaleFactor {d : ℕ} (Q : TriadicCube d) : ℝ :=
+  (3 : ℝ) ^ Q.scale
+/-- The open cube with the specified triadic center and side length. -/
+def openCubeSet {d : ℕ} (Q : TriadicCube d) : Set (Homogenization.Vec d) :=
+  {x |
+    ∀ i,
+      (((Q.index i : ℝ) - (1 / 2 : ℝ)) * cubeScaleFactor Q < x i) ∧
+        (x i < (((Q.index i : ℝ) + (1 / 2 : ℝ)) * cubeScaleFactor Q))}
+/-- The triadic cube centered at the origin at the specified scale. -/
+def originCube (d : ℕ) (m : ℤ) : TriadicCube d :=
+  { scale := m
+    index := 0 }
+end Homogenization
+namespace SubdiffusiveProcess.Model.PotentialField
+open _root_.SubdiffusiveProcessAudit.ProcessConvergence.Homogenization
+variable {d : ℕ}
+/-- The supremum of the absolute potential on the open unit cube, `‖g‖_{L^∞(𝒞₀)}`. -/
+noncomputable def unitCubeValueNorm (g : PotentialField d) : ℝ :=
+  ⨆ x : openCubeSet (originCube d 0), |g x.1|
+/-- The supremum of the operator norm of the derivative on the open unit cube, `‖∇g‖_{L^∞(𝒞₀)}`.
+-/
+noncomputable def unitCubeDerivNorm (g : PotentialField d) : ℝ :=
+  ⨆ x : openCubeSet (originCube d 0), ‖deriv g x.1‖
+/-- The Lipschitz seminorm of the derivative on the open unit cube, `‖∇²g‖_{L^∞(𝒞₀)}`. -/
+noncomputable def unitCubeDerivLipschitzSeminorm (g : PotentialField d) : ℝ :=
+  ⨆ p : { p : openCubeSet (originCube d 0) × openCubeSet (originCube d 0) // p.1 ≠ p.2 },
+    dist (deriv g p.1.1.1) (deriv g p.1.2.1) / dist p.1.1.1 p.1.2.1
+/-- The sum of the unit-cube value, derivative and derivative-Lipschitz sizes. -/
+noncomputable def g2Observable (g : PotentialField d) : ℝ :=
+  unitCubeValueNorm g + unitCubeDerivNorm g + unitCubeDerivLipschitzSeminorm g
+end SubdiffusiveProcess.Model.PotentialField
+/-- The moment condition `E exp((max(X,0)/A)^σ) ≤ 2`, with the integrand integrable
+(`σ = 2` is the sub-Gaussian case). -/
+def SubdiffusiveProcess.OGammaLE {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (σ A : ℝ)
+    (X : Ω → ℝ) : Prop :=
+  Integrable (fun ω ↦ Real.exp ((A⁻¹ * max (X ω) 0) ^ σ)) μ ∧
+    ∫ ω, Real.exp ((A⁻¹ * max (X ω) 0) ^ σ) ∂μ ≤ 2
+/-- Assumption (g2): the disorder-scaled exponential moment of the unit-cube C¹,¹
+size. -/
+structure SubdiffusiveProcess.Model.ShellLawG2 (d : ℕ) (delta : ℝ)
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) : Prop where
+  regularity_expectation :
+    SubdiffusiveProcess.OGammaLE
+      (SubdiffusiveProcess.Model.zeroPotentialLaw P).toMeasure 2 delta
+      SubdiffusiveProcess.Model.PotentialField.g2Observable
+/-- Assumption (g3): invariance under signed coordinate permutations and field
+negation. -/
+structure SubdiffusiveProcess.Model.ShellLawG3 (d : ℕ)
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) : Prop where
+  signed_coordinate_permutations :
+    ∀ (R : Mat d) (hR : IsSignedPermutationMatrix R),
+      (SubdiffusiveProcess.Model.zeroPotentialLaw P).map
+          (SubdiffusiveProcess.Model.PotentialField.rotate R hR) =
+        SubdiffusiveProcess.Model.zeroPotentialLaw P
+  negation :
+    (SubdiffusiveProcess.Model.zeroPotentialLaw P).map
+        SubdiffusiveProcess.Model.PotentialField.negate =
+      SubdiffusiveProcess.Model.zeroPotentialLaw P
+/-- The logarithm of the zero-layer exponential moment at the origin, denoted τ²
+in the paper. -/
+noncomputable def SubdiffusiveProcess.Model.tauSq {d : ℕ}
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) : ℝ :=
+  Real.log
+    (∫ g : SubdiffusiveProcess.Model.PotentialField d,
+      Real.exp (g 0) ∂(SubdiffusiveProcess.Model.zeroPotentialLaw P).toMeasure)
+/-- Assumption (g4): integrability of the exponential at the origin and positivity
+of τ². -/
+structure SubdiffusiveProcess.Model.ShellLawG4 (d : ℕ)
+    (P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)) : Prop where
+  exponential_integrable :
+    Integrable (fun g : SubdiffusiveProcess.Model.PotentialField d ↦ Real.exp (g 0))
+      (SubdiffusiveProcess.Model.zeroPotentialLaw P).toMeasure
+  tauSq_pos : 0 < SubdiffusiveProcess.Model.tauSq P
+/-- A supplied layer probability law and positive disorder satisfying the standing
+assumptions (g1)–(g4). -/
+structure SubdiffusiveProcess.Model.GMCModel (d : ℕ) where
+  delta : ℝ
+  P : ProbabilityMeasure (SubdiffusiveProcess.Model.PotentialSample d)
+  shellPrefix : SubdiffusiveProcess.Model.ShellLawPrefix d delta P
+  G1 : SubdiffusiveProcess.Model.ShellLawG1 d P
+  G2 : SubdiffusiveProcess.Model.ShellLawG2 d delta P
+  G3 : SubdiffusiveProcess.Model.ShellLawG3 d P
+  G4 : SubdiffusiveProcess.Model.ShellLawG4 d P
+/-- The exponential of the layer sum through cutoff L, centered by (L+1)τ². -/
+noncomputable def SubdiffusiveProcess.Model.aCutoff {d : ℕ}
+    (M : SubdiffusiveProcess.Model.GMCModel d) (L : ℕ)
+    (ω : SubdiffusiveProcess.Model.PotentialSample d) (x : Homogenization.Vec d) : ℝ :=
+  Real.exp (∑ k ∈ Finset.range (L + 1), (ω k x - SubdiffusiveProcess.Model.tauSq M.P))
+namespace Homogenization
+/-- The coordinate basis vector with value one in the specified coordinate. -/
+def basisVec {d : ℕ} (i : Fin d) : Homogenization.Vec d :=
+  Pi.single i (1 : ℝ)
+/-- The distributional integration-by-parts identity for one partial derivative. -/
+def HasWeakPartialDerivOn {d : ℕ} (U : Set (Homogenization.Vec d)) (i : Fin d)
+    (u gi : Homogenization.Vec d → ℝ) : Prop :=
+  ∀ φ : Homogenization.Vec d → ℝ,
+    ContDiff ℝ (⊤ : ℕ∞) φ →
+      HasCompactSupport φ →
+        tsupport φ ⊆ U →
+          ∫ x in U, u x * (fderiv ℝ φ x) (basisVec i) ∂MeasureTheory.volume =
+            -∫ x in U, gi x * φ x ∂MeasureTheory.volume
+/-- The distributional integration-by-parts identities for all gradient
+components. -/
+def HasWeakGradientOn {d : ℕ} (U : Set (Homogenization.Vec d)) (u : Homogenization.Vec d → ℝ)
+    (Du : Homogenization.Vec d → Homogenization.Vec d) : Prop :=
+  ∀ i : Fin d, HasWeakPartialDerivOn U i u (fun x => Du x i)
+/-- Square integrability on the specified domain with restricted Lebesgue measure. -/
+abbrev MemL2On {d : ℕ} (U : Set (Homogenization.Vec d)) (u : Homogenization.Vec d → ℝ) : Prop :=
+  MeasureTheory.MemLp u 2 (MeasureTheory.volume.restrict U)
+/-- Square integrability of each weak gradient component on the domain. -/
+def GradMemL2On {d : ℕ} (U : Set (Homogenization.Vec d))
+    (Du : Homogenization.Vec d → Homogenization.Vec d) : Prop :=
+  ∀ i : Fin d, MemL2On U (fun x => Du x i)
+/-- A function and weak gradient with the L² certificates defining H¹ on a domain. -/
+structure H1Function {d : ℕ} (U : Set (Homogenization.Vec d)) where
+  toFun : Homogenization.Vec d → ℝ
+  grad : Homogenization.Vec d → Homogenization.Vec d
+  memL2 : MemL2On U toFun
+  gradMemL2 : GradMemL2On U grad
+  hasWeakGradient : HasWeakGradientOn U toFun grad
+instance {d : ℕ} {U : Set (Homogenization.Vec d)} :
+    CoeFun (H1Function U) (fun _ => Homogenization.Vec d → ℝ) where coe u := u.toFun
+/-- An H¹ function approximable by compactly supported smooth functions in H¹,
+encoding zero trace. -/
+structure H10Function {d : ℕ} (U : Set (Homogenization.Vec d)) extends H1Function U where
+  approx : ℕ → Homogenization.Vec d → ℝ
+  approx_smooth : ∀ n, ContDiff ℝ (⊤ : ℕ∞) (approx n)
+  approx_hasCompactSupport : ∀ n, HasCompactSupport (approx n)
+  approx_support_subset : ∀ n, tsupport (approx n) ⊆ U
+  tendsto_approx :
+    Filter.Tendsto
+      (fun n =>
+        MeasureTheory.eLpNorm (fun x => approx n x - toH1Function.toFun x) 2
+          (MeasureTheory.volume.restrict U))
+      Filter.atTop (nhds 0)
+  tendsto_approx_grad :
+    ∀ i : Fin d,
+      Filter.Tendsto
+        (fun n =>
+          MeasureTheory.eLpNorm
+            (fun x => (fderiv ℝ (approx n) x) (basisVec i) - toH1Function.grad x i) 2
+            (MeasureTheory.volume.restrict U))
+        Filter.atTop (nhds 0)
+instance {d : ℕ} {U : Set (Homogenization.Vec d)} :
+    CoeFun (H10Function U) (fun _ => Homogenization.Vec d → ℝ) where coe u := u.toH1Function.toFun
+/-- A bounded, open, convex spatial domain. -/
+def IsOpenBoundedConvexDomain {d : ℕ} (U : Set (Homogenization.Vec d)) : Prop :=
+  IsOpen U ∧ Bornology.IsBounded U ∧ Convex ℝ U
+end Homogenization
+namespace SubdiffusiveProcess.CoarseGrainingVocab
+open _root_.SubdiffusiveProcessAudit.ProcessConvergence.Homogenization
+open MeasureTheory
+/-- The Lebesgue-volume-normalized average on a spatial set. -/
+noncomputable def volumeAverage {d : ℕ} (U : Set (Homogenization.Vec d))
+    (f : Homogenization.Vec d → ℝ) : ℝ :=
+  (volume U).toReal⁻¹ * ∫ x in U, f x ∂volume
+/-- The cell-problem energy of direction `eᵢ` on the triadic cube `Q` for the scalar coefficient
+`a`: `inf_{w ∈ H¹₀(Q)} ⨍_Q a |eᵢ + ∇w|²`. For a symmetric coefficient this is `eᵢ·a(Q)eᵢ`, where
+`a(Q)` is the coarse-grained matrix of the paper. -/
+noncomputable def cellEnergy {d : ℕ} (a : Homogenization.Vec d → ℝ)
+    (Q : Homogenization.TriadicCube d) (i : Fin d) : ℝ :=
+  sInf
+    {E |
+      ∃ w : Homogenization.H10Function (Homogenization.openCubeSet Q),
+        E =
+          volumeAverage (Homogenization.openCubeSet Q)
+            (fun x => a x * Homogenization.vecNormSq (Homogenization.basisVec i + w.grad x))}
+end SubdiffusiveProcess.CoarseGrainingVocab
+/-- The effective diffusivity `ahom_m` of the cutoff coefficient `a_m`: the infimum over cube
+scales `n` of `(1/d) Σᵢ E[eᵢ·a_m(𝒞ₙ)eᵢ]`. These values are nonincreasing in `n` (subadditivity),
+so the infimum is the limit `lim_n ahom_m(𝒞ₙ)` of the paper. -/
+noncomputable def SubdiffusiveProcess.CoarseGrainingVocab.ahom {d : ℕ}
+    (M : SubdiffusiveProcess.Model.GMCModel d) (m : ℕ) : ℝ :=
+  sInf
+    (Set.range fun n : ℕ =>
+      (∑ i : Fin d,
+          ∫ ω,
+            SubdiffusiveProcess.CoarseGrainingVocab.cellEnergy
+              (SubdiffusiveProcess.Model.aCutoff M m ω) (Homogenization.originCube d n)
+              i ∂M.P.toMeasure) /
+        (d : ℝ))
+namespace MarkovProcess
+variable {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
+/-- A measurable transition kernel with total mass at most one from each state. -/
+def IsSubMarkovKernel (κ : ProbabilityTheory.Kernel α β) : Prop :=
+  ∀ x, κ x Set.univ ≤ 1
+variable {α : Type*} [MeasurableSpace α]
+/-- Integration of a real test function against the transition kernel from a
+state. -/
+noncomputable def kernelIntegral (κ : Kernel α α) (f : α → ℝ) (x : α) : ℝ :=
+  ∫ y, f y ∂κ x
+end MarkovProcess
+open Set
+open scoped ENNReal ProbabilityTheory
+namespace MarkovProcess
+/-- A sub-Markov transition family with the identity at time zero and the
+semigroup law. -/
+structure SubMarkovKernelSemigroup (α : Type*) [MeasurableSpace α] where
+  kernel : NNReal → Kernel α α
+  measurable_kernel : Measurable fun p : NNReal × α ↦ kernel p.1 p.2
+  kernel_zero : kernel 0 = Kernel.id
+  kernel_add : ∀ s t, kernel (s + t) = (kernel t).comp (kernel s)
+  isSubMarkovKernel : ∀ t, IsSubMarkovKernel (kernel t)
+namespace SubMarkovKernelSemigroup
+variable {α : Type*} [MeasurableSpace α]
+instance : CoeFun (SubMarkovKernelSemigroup α) (fun _ ↦ NNReal → Kernel α α) where coe P := P.kernel
+variable (P : SubMarkovKernelSemigroup α)
+/-- Total transition mass is one at every time and starting state. -/
+def IsConservative : Prop :=
+  ∀ t x, P t x univ = 1
+end SubMarkovKernelSemigroup
+end MarkovProcess
+namespace MarkovProcess.Semigroup
+open Filter Set Topology
+/-- The positive real resolvent parameter, packaged as a subtype. -/
+abbrev PositiveShift :=
+  Set.Ioi (0 : ℝ)
+end MarkovProcess.Semigroup
+namespace SubdiffusiveProcess.CoarseGrainingVocab.Resolvent
+open Filter Topology
+open MarkovProcess MarkovProcess.Semigroup
+open scoped ZeroAtInfty
+variable {E : Type*} [TopologicalSpace E]
+/-- A positive family of operators `R_μ` (`μ > 0`) on `C₀(E)`, additive and homogeneous, with
+`‖R_μ f‖ ≤ ‖f‖/μ` and the resolvent identity `R_μ − R_ν = (ν − μ) R_μ R_ν`. Dense range is imposed
+in the theorem. -/
+structure C0ResolventDatum (E : Type*) [TopologicalSpace E] where
+  solution : PositiveShift → C₀(E, ℝ) → C₀(E, ℝ)
+  solution_add :
+    ∀ (μ : PositiveShift) (f g : C₀(E, ℝ)), solution μ (f + g) = solution μ f + solution μ g
+  solution_smul :
+    ∀ (μ : PositiveShift) (r : ℝ) (f : C₀(E, ℝ)), solution μ (r • f) = r • solution μ f
+  solution_nonneg : ∀ (μ : PositiveShift) (f : C₀(E, ℝ)), (∀ x, 0 ≤ f x) → ∀ x, 0 ≤ solution μ f x
+  norm_solution_le : ∀ (μ : PositiveShift) (f : C₀(E, ℝ)), ‖solution μ f‖ ≤ ((μ : ℝ))⁻¹ * ‖f‖
+  solution_sub_solution :
+    ∀ (μ ν : PositiveShift) (f : C₀(E, ℝ)),
+      solution μ f - solution ν f = ((ν : ℝ) - (μ : ℝ)) • solution μ (solution ν f)
+namespace C0ResolventDatum
+variable (D : C0ResolventDatum E)
+/-- A resolvent map regarded as a real linear map on C₀. -/
+def linearMap (μ : PositiveShift) : C₀(E, ℝ) →ₗ[ℝ] C₀(E, ℝ)
+    where
+  toFun := D.solution μ
+  map_add' := D.solution_add μ
+  map_smul' r f := D.solution_smul μ r f
+/-- A resolvent map regarded as a bounded continuous linear operator on C₀. -/
+def operator (μ : PositiveShift) : C₀(E, ℝ) →L[ℝ] C₀(E, ℝ) :=
+  LinearMap.mkContinuous (D.linearMap μ) ((μ : ℝ))⁻¹ (D.norm_solution_le μ)
+end C0ResolventDatum
+open SubdiffusiveProcess.CoarseGrainingVocab
+variable {d : ℕ}
+/-- The weak equation μρu − div(c∇u) = ρf, tested against zero-trace H¹ functions
+on W. -/
+def IsMassiveWeakSolutionOn (c rho : Homogenization.Vec d → ℝ) (mu : ℝ)
+    (W : Set (Homogenization.Vec d)) (u : H1Function W) (f : Homogenization.Vec d → ℝ) : Prop :=
+  ∀ φ : H10Function W,
+    mu * ∫ x in W, rho x * u.toFun x * φ.toH1Function.toFun x ∂volume +
+        ∫ x in W, vecDot (c x • u.grad x) (φ.toH1Function.grad x) ∂volume =
+      ∫ x in W, rho x * f x * φ.toH1Function.toFun x ∂volume
+open SubdiffusiveProcess.CoarseGrainingVocab
+open MarkovProcess MarkovProcess.Semigroup
+open scoped ZeroAtInfty
+variable {d : ℕ}
+/-- On every bounded open convex set `W`, `D_μ f` is the `H¹(W)` weak solution of
+`μρu − ∇·(c∇u) = ρf`. Two resolvent families with this property differ by a continuous weak
+solution of the homogeneous equation that vanishes at infinity, which is zero; so, with the `C₀`
+axioms, `c` and `ρ` determine the Feller semigroup. -/
+def IsWeakEllipticResolvent (c rho : Homogenization.Vec d → ℝ)
+    (D : C0ResolventDatum (Homogenization.Vec d)) : Prop :=
+  ∀ (mu : PositiveShift) (f : C₀(Homogenization.Vec d, ℝ)) (W : Set (Homogenization.Vec d)),
+    IsOpenBoundedConvexDomain W →
+      ∃ u : H1Function W,
+        (∀ x ∈ W, u.toFun x = D.solution mu f x) ∧
+          IsMassiveWeakSolutionOn c rho (mu : ℝ) W u (fun x ↦ f x)
+end SubdiffusiveProcess.CoarseGrainingVocab.Resolvent
+open MeasureTheory Filter Set TopologicalSpace
+open scoped ENNReal ContDiff Distributions
+namespace SubdiffusiveProcess
+/-- The d-dimensional spatial coordinate space. -/
+abbrev SpatialCoordinates (d : ℕ) :=
+  Fin d → ℝ
+variable {d : ℕ} {Ω : Opens (SpatialCoordinates d)}
+end SubdiffusiveProcess
+open scoped NNReal
+namespace SubdiffusiveProcess
+/-- Conversion of a zero-level continuous field to the specified bilateral triadic
+scale. -/
+def layerScaling (d : ℕ) (j : ℤ) : C(C(SpatialCoordinates d, ℝ), C(SpatialCoordinates d, ℝ)) :=
+  ContinuousMap.compRightContinuousMap ℝ
+    (⟨fun x : SpatialCoordinates d => (3 : ℝ) ^ (-j) • x, by fun_prop⟩ :
+      C(SpatialCoordinates d, SpatialCoordinates d))
+/-- The continuous-field law at a given bilateral scale, obtained from the
+zero-layer law. -/
+def scaledLayerLaw (d : ℕ) [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (ν : ProbabilityMeasure C(SpatialCoordinates d, ℝ))
+    (j : ℤ) : ProbabilityMeasure C(SpatialCoordinates d, ℝ) :=
+  ν.map (layerScaling d j)
+/-- The product probability law of independent continuous fields at all integer
+triadic scales. -/
+def commonScaleLaw (d : ℕ) [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (ν : ProbabilityMeasure C(SpatialCoordinates d, ℝ)) :
+    ProbabilityMeasure (ℤ → C(SpatialCoordinates d, ℝ)) :=
+  ⟨Measure.infinitePi (fun j : ℤ => (scaledLayerLaw d ν j : Measure C(SpatialCoordinates d, ℝ))),
+    inferInstance⟩
+/-- A continuous spatial path indexed by nonnegative real time. -/
+abbrev DiffusionPath (d : ℕ) :=
+  C(ℝ≥0, SpatialCoordinates d)
+end SubdiffusiveProcess
+namespace MarkovProcess
+/-- A continuous state-space path indexed by nonnegative real time. -/
+abbrev ContinuousPath (alpha : Type*) [TopologicalSpace alpha] :=
+  C(NNReal, alpha)
+namespace ContinuousPath
+variable {alpha : Type*} [TopologicalSpace alpha]
+/-- Evaluation of a continuous path at the specified time. -/
+def coordinateProcess (t : NNReal) (omega : ContinuousPath alpha) : alpha :=
+  omega t
+theorem measurable_coordinateProcess [MeasurableSpace alpha] [BorelSpace alpha] (t : NNReal) :
+    Measurable[borel (ContinuousPath alpha)] (coordinateProcess (alpha := alpha) t) :=
+  (continuous_eval_const t).borel_measurable.mono le_rfl (le_of_eq BorelSpace.measurable_eq)
+/-- The filtration generated by the path coordinates up to each time. -/
+def canonicalFiltration [MeasurableSpace alpha] [BorelSpace alpha] :
+    Filtration NNReal (borel (ContinuousPath alpha))
+    where
+  seq
+    t :=
+    ⨆ s : Set.Iic t,
+      MeasurableSpace.comap (coordinateProcess (alpha := alpha) s) ‹MeasurableSpace alpha›
+  mono' t u
+    htu := by
+    refine iSup_le fun s => ?_
+    exact le_iSup_of_le (⟨s.1, s.2.trans htu⟩ : Set.Iic u) le_rfl
+  le' t := iSup_le fun s => (measurable_coordinateProcess s).comap_le
+end ContinuousPath
+/-- A finite list of nonnegative times in increasing order. -/
+abbrev FiniteOrderedTimes (n : ℕ) :=
+  Fin n ↪o NNReal
+namespace FiniteOrderedTimes
+/-- The remaining ordered times translated by the first time. -/
+def relativeTail {n : ℕ} (times : FiniteOrderedTimes (n + 1)) : FiniteOrderedTimes n :=
+  OrderEmbedding.ofStrictMono (fun i ↦ times i.succ - times 0) fun _ _ hij ↦
+    tsub_lt_tsub_right_of_le (times.monotone (Fin.zero_le _))
+      (times.strictMono (Fin.strictMono_succ hij))
+/-- The unique empty finite path, used at zero observation times. -/
+def emptyPath (α : Type*) : Fin 0 → α :=
+  Fin.elim0
+end FiniteOrderedTimes
+theorem measurable_finCons {α : Type*} [MeasurableSpace α] {n : ℕ} :
+    Measurable (fun z : α × (Fin n → α) ↦ @Fin.cons n (fun _ : Fin (n + 1) ↦ α) z.1 z.2) :=
+  by
+  rw [measurable_pi_iff]
+  intro i
+  refine Fin.cases ?_ (fun j ↦ ?_) i
+  · simpa only [Fin.cons_zero] using! (measurable_fst : Measurable (Prod.fst : α × (Fin n → α) → α))
+  ·
+    simpa only [Fin.cons_succ] using!
+      (measurable_pi_apply j).comp (measurable_snd : Measurable (Prod.snd : α × (Fin n → α) → _))
+namespace SubMarkovKernelSemigroup
+variable {α : Type*} [MeasurableSpace α]
+/-- The joint kernel at a finite ordered list of times, obtained by iterating
+transitions. -/
+noncomputable def finiteTimeKernel (P : SubMarkovKernelSemigroup α) :
+    {n : ℕ} → FiniteOrderedTimes n → Kernel α (Fin n → α)
+  | 0, _ => Kernel.const α (Measure.dirac (FiniteOrderedTimes.emptyPath α))
+  | n + 1, times =>
+    Kernel.mapOfMeasurable
+      (P (times 0) ⊗ₖ Kernel.prodMkLeft α (finiteTimeKernel P times.relativeTail))
+      (fun z ↦ @Fin.cons n (fun _ : Fin (n + 1) ↦ α) z.1 z.2) measurable_finCons
+variable {α : Type*} [MeasurableSpace α]
+/-- A finite set of observation times arranged in increasing order. -/
+noncomputable def finiteSetTimes (I : Finset NNReal) : FiniteOrderedTimes I.card :=
+  I.orderEmbOfFin rfl
+/-- Relabelling ordered finite observations by their observation-time set. -/
+noncomputable def orderedPathToFiniteSet (I : Finset NNReal) (path : Fin I.card → α) : I → α :=
+  fun t ↦ path ((I.orderIsoOfFin rfl).symm t)
+theorem measurable_orderedPathToFiniteSet (I : Finset NNReal) :
+    Measurable (orderedPathToFiniteSet (α := α) I) :=
+  measurable_pi_iff.mpr fun t ↦ measurable_pi_apply ((I.orderIsoOfFin rfl).symm t)
+/-- The finite-dimensional transition kernel indexed by a finite set of times. -/
+noncomputable def finiteSetKernel (P : SubMarkovKernelSemigroup α) (I : Finset NNReal) :
+    Kernel α (I → α) :=
+  Kernel.mapOfMeasurable (finiteTimeKernel P (finiteSetTimes I)) (orderedPathToFiniteSet I)
+    (measurable_orderedPathToFiniteSet I)
+end SubMarkovKernelSemigroup
+namespace ContinuousPath
+variable {alpha : Type*} [TopologicalSpace alpha]
+/-- The continuous nonnegative-time translation t ↦ S + t. -/
+def timeTranslation (S : NNReal) : C(NNReal, NNReal)
+    where
+  toFun t := S + t
+  continuous_toFun := continuous_const.add continuous_id
+/-- The continuous path shifted forward by the specified nonnegative time. -/
+def shift (S : NNReal) (omega : ContinuousPath alpha) : ContinuousPath alpha :=
+  omega.comp (timeTranslation S)
+/-- Evaluation of a continuous path at a family of observation times. -/
+def finiteEvaluation {ι α : Type*} [TopologicalSpace α] (τ : ι → NNReal) :
+    ContinuousPath α → (ι → α) := fun path i ↦ path (τ i)
+end ContinuousPath
+section FinsetEvaluation
+namespace ContinuousPath
+variable {alpha : Type*} [TopologicalSpace alpha]
+/-- Evaluation of a continuous path at a finite set of observation times. -/
+abbrev finsetEvaluation (I : Finset NNReal) : ContinuousPath alpha → (I → alpha) :=
+  finiteEvaluation (fun t : I ↦ (t : NNReal))
+end ContinuousPath
+end FinsetEvaluation
+namespace ContinuousPath
+variable {alpha : Type*} [TopologicalSpace alpha]
+/-- The first path time outside the specified spatial set, with infinity if there
+is no exit. -/
+def exitTime (U : Set alpha) (omega : ContinuousPath alpha) : ENNReal :=
+  sInf {s : ENNReal | ∃ t : NNReal, s = (t : ENNReal) ∧ omega t ∉ U}
+end ContinuousPath
+end MarkovProcess
+open MarkovProcess
+open scoped CompactlySupported ENNReal NNReal LevyProkhorov
+namespace SubdiffusiveProcess
+/-- A sequence of continuous potential fields indexed by every integer scale. -/
+abbrev BilateralField (d : ℕ) :=
+  ℤ → C(SpatialCoordinates d, ℝ)
+/-- The finite sum of the fine-scale potential fields used for the chaos
+approximation. -/
+def finePotential {d : ℕ} (N : ℕ) (omega : BilateralField d) (x : SpatialCoordinates d) : ℝ :=
+  ∑ j ∈ Finset.range (N + 1), omega (-(Int.ofNat j)) x
+/-- The exponential fine-scale density normalized by the zero-layer exponential
+moment. -/
+def fineDensity {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d) (N : ℕ)
+    (omega : BilateralField d) (x : SpatialCoordinates d) : ℝ :=
+  Real.exp
+    (finePotential N omega x - (N + 1 : ℝ) * SubdiffusiveProcess.Model.tauSq M.P)
+/-- The finite-scale chaos measure with density given by the normalized fine-scale
+exponential. -/
+def chaosCutoff {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d) (N : ℕ)
+    (omega : BilateralField d) : Measure (SpatialCoordinates d) :=
+  volume.withDensity (ENNReal.ofReal ∘ fineDensity M N omega)
+/-- The infrared potential plus the finite sum of fields below the infrared
+cutoff. -/
+def cutoffPotential {d : ℕ} (H : BilateralField d → C(SpatialCoordinates d, ℝ))
+    (omega : BilateralField d) (N : ℕ) (x : SpatialCoordinates d) : ℝ :=
+  H omega x + ∑ j ∈ Finset.range (N + 1), omega (-(Int.ofNat j)) x
+/-- The coefficient `c_N = ahom_N⁻¹ ρ_N` of the cutoff diffusion `KN N`, with `ρ_N` the speed
+density `exp(potential − (N+1)τ²)`. The speed density carries no `ahom` factor, so `KN N` has
+generator `ahom_N⁻¹ ρ_N⁻¹ ∇·(ρ_N ∇)`; in particular `KN 0` is the paper's diffusion run at speed
+`1/ahom₀`. -/
+def cutoffCoefficient {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d)
+    (H : BilateralField d → C(SpatialCoordinates d, ℝ)) (omega : BilateralField d) (N : ℕ)
+    (x : SpatialCoordinates d) : ℝ :=
+  (SubdiffusiveProcess.CoarseGrainingVocab.ahom M N)⁻¹ *
+    Real.exp
+      (cutoffPotential H omega N x - (N + 1 : ℝ) * SubdiffusiveProcess.Model.tauSq M.P)
+/-- The exponential cutoff density centered by (N+1)τ², defining the speed measure
+without ahom normalization. -/
+def cutoffSpeedDensity {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d)
+    (H : BilateralField d → C(SpatialCoordinates d, ℝ)) (omega : BilateralField d) (N : ℕ)
+    (x : SpatialCoordinates d) : ℝ :=
+  Real.exp
+    (cutoffPotential H omega N x - (N + 1 : ℝ) * SubdiffusiveProcess.Model.tauSq M.P)
+/-- Lebesgue measure weighted by the cutoff speed density. -/
+def cutoffSpeedMeasure {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d)
+    (H : BilateralField d → C(SpatialCoordinates d, ℝ)) (omega : BilateralField d) (N : ℕ) :
+    Measure (SpatialCoordinates d) :=
+  volume.withDensity (ENNReal.ofReal ∘ cutoffSpeedDensity M H omega N)
+/-- The completion and right-continuous augmentation of the natural path
+filtration at a time. -/
+def usualNaturalAt {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (mu : Measure (DiffusionPath d)) (t : NNReal) :
+    MeasurableSpace (DiffusionPath d) :=
+  ⨅ s : { s : NNReal // t < s },
+    ContinuousPath.canonicalFiltration (alpha := SpatialCoordinates d) s.val ⊔
+      MeasurableSpace.generateFrom {A : Set (DiffusionPath d) | mu A = 0}
+/-- A stopping time for the usual augmentation of the natural filtration of the
+path law. -/
+def IsUsualStoppingTime {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (mu : Measure (DiffusionPath d))
+    (tau : DiffusionPath d → WithTop NNReal) : Prop :=
+  ∀ t : NNReal, MeasurableSet[usualNaturalAt mu t] {path | tau path ≤ t}
+/-- Measurability of an event at the specified usual-filtration stopping time. -/
+def MeasurableAtUsualStoppingTime {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (mu : Measure (DiffusionPath d))
+    (tau : DiffusionPath d → WithTop NNReal) (A : Set (DiffusionPath d)) : Prop :=
+  NullMeasurableSet A mu ∧
+    ∀ t : NNReal, MeasurableSet[usualNaturalAt mu t] (A ∩ {path | tau path ≤ t})
+/-- The conditional restart identity for shifted paths at every finite
+usual-filtration stopping time. -/
+def HasStrongMarkovRestart {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)]
+    (K : Kernel (BilateralField d × SpatialCoordinates d) (DiffusionPath d))
+    (omega : BilateralField d) : Prop :=
+  ∀ (x : SpatialCoordinates d) (tau : DiffusionPath d → WithTop NNReal),
+    IsUsualStoppingTime (K (omega, x)) tau →
+      ∀ (A : Set (DiffusionPath d)),
+        MeasurableAtUsualStoppingTime (K (omega, x)) tau A →
+          ∀ F : DiffusionPath d → ℝ≥0∞,
+            Measurable F →
+              ∫⁻ path in A ∩ {path | tau path < ⊤},
+                  F (ContinuousPath.shift ((tau path).untopD 0) path) ∂(K (omega, x)) =
+                ∫⁻ path in A ∩ {path | tau path < ⊤},
+                  ∫⁻ future, F future ∂(K (omega, path ((tau path).untopD 0))) ∂(K (omega, x))
+/-- The origin-anchored finite sum of the infrared layers. -/
+def infraredPartialSum {d : ℕ} (omega : BilateralField d) (L : ℕ) : C(SpatialCoordinates d, ℝ) :=
+  Finset.sum (Finset.range L)
+    (fun n ↦ omega (Int.ofNat (n + 1)) - ContinuousMap.const _ (omega (Int.ofNat (n + 1)) 0))
+/-- The quenched path law `K (ω, x)` packaged as a probability measure on `DiffusionPath d`. -/
+def jointPathProbabilityMeasure {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    (K : Kernel (BilateralField d × SpatialCoordinates d) (DiffusionPath d)) (hK : IsMarkovKernel K)
+    (omega : BilateralField d) (x : SpatialCoordinates d) : ProbabilityMeasure (DiffusionPath d) :=
+  by
+  letI : IsProbabilityMeasure (K (omega, x)) := hK.isProbabilityMeasure (omega, x)
+  exact ⟨K (omega, x), inferInstance⟩
+/-- Weak convergence against every compactly supported continuous real test
+function. -/
+def MeasuresConvergeLocally {d : ℕ} (muN : ℕ → Measure (SpatialCoordinates d))
+    (mu : Measure (SpatialCoordinates d)) : Prop :=
+  ∀ f : C_c(SpatialCoordinates d, ℝ), Tendsto (fun N ↦ ∫ x, f x ∂muN N) atTop (nhds (∫ x, f x ∂mu))
+/-- The time factor `ahom₀ · 3^{2N} / ahom_N`. The paper's process `X` is `KN 0` run at speed
+`ahom₀`, so `X_{3^{2N}t/ahom_N}` is `KN 0` at time `ahom₀ · 3^{2N} t / ahom_N`. -/
+def physicalTimeFactor {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d) (N : ℕ) :
+    ℝ≥0 :=
+  Real.toNNReal
+    (SubdiffusiveProcess.CoarseGrainingVocab.ahom M 0 * (3 : ℝ) ^ (2 * N) /
+      SubdiffusiveProcess.CoarseGrainingVocab.ahom M N)
+/-- Space-time rescaling of a path by spatial factor 3⁻ᴺ and the physical time
+factor. -/
+def physicalRescaledPath {d : ℕ} (M : SubdiffusiveProcess.Model.GMCModel d) (N : ℕ) :
+    DiffusionPath d → DiffusionPath d := fun path ↦
+  ((3 : ℝ)⁻¹ ^ N) •
+    path.comp ⟨fun t ↦ physicalTimeFactor M N * t, continuous_const.mul continuous_id⟩
+/-- Symmetry of the transition semigroup with respect to a reversible measure `μ`:
+`∫ f · P_t g dμ = ∫ g · P_t f dμ`. -/
+def SemigroupSymmetric {d : ℕ} (P : SubMarkovKernelSemigroup (SpatialCoordinates d))
+    (mu : Measure (SpatialCoordinates d)) : Prop :=
+  ∀ (t : ℝ≥0) (f g : SpatialCoordinates d → ℝ≥0∞),
+    Measurable f →
+      Measurable g → ∫⁻ x, f x * (∫⁻ y, g y ∂P t x) ∂mu = ∫⁻ x, g x * (∫⁻ y, f y ∂P t x) ∂mu
+end SubdiffusiveProcess
+open Filter MeasureTheory ProbabilityTheory Topology Asymptotics
+open SubdiffusiveProcess
+namespace SubdiffusiveProcess
+open SubdiffusiveProcess.CoarseGrainingVocab.Resolvent
+variable {d : ℕ} [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+  [BorelSpace C(SpatialCoordinates d, ℝ)]
+/-- The cutoff diffusion `N` in the environment `omega` is specified through its resolvent: there
+is a positive contractive resolvent family `D` on `C₀(ℝᵈ)` with dense range (so it generates a
+Feller semigroup) which on every bounded open convex set is the `H¹` weak solution of
+`μρu − ∇·(c∇u) = ρf` for the cutoff coefficient `c` and speed density `ρ`, and whose Laplace
+transform in time is the sub-Markov semigroup `PN N omega`. -/
+def IsCutoffResolvent (M : SubdiffusiveProcess.Model.GMCModel d)
+    (H : BilateralField d → C(SpatialCoordinates d, ℝ)) (omega : BilateralField d) (N : ℕ)
+    (PN : ℕ → BilateralField d → SubMarkovKernelSemigroup (SpatialCoordinates d)) : Prop :=
+  ∃ D : C0ResolventDatum (SpatialCoordinates d),
+    (∀ mu, DenseRange (D.operator mu)) ∧
+      IsWeakEllipticResolvent (cutoffCoefficient M H omega N) (cutoffSpeedDensity M H omega N) D ∧
+        ∀ (mu : Semigroup.PositiveShift) (f : ZeroAtInftyContinuousMap (SpatialCoordinates d) ℝ)
+          (x : SpatialCoordinates d),
+          D.solution mu f x =
+            ∫ t in Set.Ioi (0 : ℝ),
+              Real.exp (-(mu : ℝ) * t) * kernelIntegral (PN N omega (Real.toNNReal t)) f x
+/-- Theorem A(i), annealed convergence: for every `x` and bounded continuous test functional `F`,
+the environment average of `F` over the rescaled cutoff-`0` process started at `3ᴺx` converges to
+the environment average of `F` over the limit process started at `x`. -/
+def AnnealedConvergence (M : SubdiffusiveProcess.Model.GMCModel d)
+    (law : Measure (BilateralField d))
+    (KN : ℕ → Kernel (BilateralField d × SpatialCoordinates d) (DiffusionPath d))
+    (K : Kernel (BilateralField d × SpatialCoordinates d) (DiffusionPath d)) : Prop :=
+  ∀ (x : SpatialCoordinates d) (F : BoundedContinuousFunction (DiffusionPath d) ℝ),
+    Tendsto
+      (fun N ↦
+        ∫ omega, (∫ path, F (physicalRescaledPath M N path) ∂(KN 0 (omega, (3 : ℝ) ^ N • x))) ∂law)
+      atTop (nhds (∫ omega, (∫ path, F path ∂(K (omega, x))) ∂law))
+/-- Theorem A(ii) and (iv): the limit process is reversible for a locally finite measure `μ`, the
+limit of the cutoff speed measures (a chaos measure times `exp H`), which is singular with respect
+to Lebesgue measure; almost surely, for every `x` and `t > 0` the law of the process at time `t`
+is absolutely continuous with respect to `μ` and not Gaussian. -/
+def SingularReversibleMarginals (M : SubdiffusiveProcess.Model.GMCModel d)
+    (H : BilateralField d → C(SpatialCoordinates d, ℝ)) (law : Measure (BilateralField d))
+    (P : BilateralField d → SubMarkovKernelSemigroup (SpatialCoordinates d))
+    (K : Kernel (BilateralField d × SpatialCoordinates d) (DiffusionPath d)) : Prop :=
+  ∃ Mlim : BilateralField d → Measure (SpatialCoordinates d),
+    Measurable Mlim ∧
+      ∀ᵐ omega ∂law,
+        let mu := (Mlim omega).withDensity (fun y ↦ ENNReal.ofReal (Real.exp (H omega y)))
+        MeasuresConvergeLocally (fun N ↦ chaosCutoff M N omega) (Mlim omega) ∧
+          MeasuresConvergeLocally (fun N ↦ cutoffSpeedMeasure M H omega N) mu ∧
+            IsLocallyFiniteMeasure (Mlim omega) ∧
+              IsLocallyFiniteMeasure mu ∧
+                SemigroupSymmetric (P omega) mu ∧
+                  mu ⟂ₘ volume ∧
+                    ∀ (x : SpatialCoordinates d) (t : ℝ≥0),
+                      0 < t →
+                        (K (omega, x)).map (fun w : DiffusionPath d ↦ w t) ≪ mu ∧
+                          ¬IsGaussian ((K (omega, x)).map (fun w : DiffusionPath d ↦ w t))
+/-- Theorem A(iii), anomalous scaling: the annealed mean exit time from the cube of side `r ≤ 1`
+is at most `C r^{2+η}`, and for every `x`, almost surely, almost every path has
+`limsup_{t↓0} t^{-γ}|Z_t − Z_0| = ∞` for all `γ > 1/(2+η)`. -/
+def AnomalousScaling (C eta : ℝ) (law : Measure (BilateralField d))
+    (K : Kernel (BilateralField d × SpatialCoordinates d) (DiffusionPath d)) : Prop :=
+  (∀ (x : SpatialCoordinates d) (r : ℝ),
+      0 < r →
+        r ≤ 1 →
+          ∫⁻ omega,
+              (∫⁻ w, ContinuousPath.exitTime (Metric.ball (w 0) (r / 2)) w ∂K (omega, x)) ∂law ≤
+            ENNReal.ofReal (C * r ^ (2 + eta))) ∧
+    ∀ x : SpatialCoordinates d,
+      ∀ᵐ omega ∂law,
+        ∀ᵐ w ∂K (omega, x),
+          ∀ gamma : ℝ,
+            1 / (2 + eta) < gamma →
+              Filter.limsup (fun t : ℝ≥0 ↦ ENNReal.ofReal ((t : ℝ) ^ (-gamma) * ‖w t - w 0‖))
+                  (𝓝[>] 0) =
+                (⊤ : ℝ≥0∞)
+end SubdiffusiveProcess
+/-- **Theorem A** (`t.A`). `δ₀` depends only on `d`; `C`, `η` and the processes are chosen after
+the model, in the order: the infrared field `H`, the cutoff semigroups `PN`, the limit semigroup
+`P`, the cutoff path laws `KN` and the limit path law `K`. The clauses are, in order: Feller
+continuity of `K`;
+the cutoff resolvent identification, the finite-dimensional distributions of `KN`, `K` and the
+strong Markov property of `K` (almost surely in the environment); then (i) `AnnealedConvergence`,
+(ii) and (iv) `SingularReversibleMarginals`, (iii) `AnomalousScaling`. -/
+theorem theoremA (d : ℕ) [MeasurableSpace C(SpatialCoordinates d, ℝ)]
+    [BorelSpace C(SpatialCoordinates d, ℝ)] (hd : 2 ≤ d) :
+    ∃ delta0 : ℝ,
+      0 < delta0 ∧
+        ∀ (M : SubdiffusiveProcess.Model.GMCModel d),
+          0 < M.delta →
+            M.delta ≤ delta0 →
+              let forget :
+                C(SubdiffusiveProcess.Model.PotentialField d,
+                  C(SpatialCoordinates d, ℝ)) :=
+                ⟨fun g ↦ g.1.1, continuous_subtype_val.fst⟩
+              let nu := (SubdiffusiveProcess.Model.zeroPotentialLaw M.P).map forget
+              let law := (commonScaleLaw d nu).toMeasure
+              ∃ C eta : ℝ,
+                0 < eta ∧
+                  (d = 2 → eta = SubdiffusiveProcess.Model.tauSq M.P / Real.log 3) ∧
+                    ∃ H : BilateralField d → C(SpatialCoordinates d, ℝ),
+                      Measurable H ∧
+                        ∃ PN :
+                          ℕ → BilateralField d → SubMarkovKernelSemigroup (SpatialCoordinates d),
+                          ∃ _hPN : ∀ N omega, (PN N omega).IsConservative,
+                            ∃ P :
+                              BilateralField d → SubMarkovKernelSemigroup (SpatialCoordinates d),
+                              ∃ _hP : ∀ omega, (P omega).IsConservative,
+                                ∃ KN :
+                                  ℕ →
+                                    Kernel (BilateralField d × SpatialCoordinates d)
+                                      (DiffusionPath d),
+                                  ∃ _hKN : ∀ N, IsMarkovKernel (KN N),
+                                    ∃ K :
+                                      Kernel (BilateralField d × SpatialCoordinates d)
+                                        (DiffusionPath d),
+                                      ∃ hK : IsMarkovKernel K,
+                                        (∀ omega : BilateralField d,
+                                            Continuous
+                                              (fun x ↦ jointPathProbabilityMeasure K hK omega x)) ∧
+                                          (∀ᵐ omega ∂law,
+                                              Tendsto (infraredPartialSum omega) atTop
+                                                  (nhds (H omega)) ∧
+                                                (∀ N, IsCutoffResolvent M H omega N PN) ∧
+                                                  (∀ N I x,
+                                                      (KN N).map (ContinuousPath.finsetEvaluation I)
+                                                          (omega, x) =
+                                                        SubMarkovKernelSemigroup.finiteSetKernel
+                                                          (PN N omega) I x) ∧
+                                                    (∀ I x,
+                                                        K.map (ContinuousPath.finsetEvaluation I)
+                                                            (omega, x) =
+                                                          SubMarkovKernelSemigroup.finiteSetKernel
+                                                            (P omega) I x) ∧
+                                                      HasStrongMarkovRestart K omega) ∧
+                                            AnnealedConvergence M law KN K ∧
+                                              SingularReversibleMarginals M H law P K ∧
+                                                AnomalousScaling C eta law K :=
+  by sorry
+end SubdiffusiveProcessAudit.ProcessConvergence
