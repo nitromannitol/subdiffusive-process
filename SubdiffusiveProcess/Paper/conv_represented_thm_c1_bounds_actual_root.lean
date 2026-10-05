@@ -1,0 +1,65 @@
+module
+
+public import SubdiffusiveProcess.Paper.conv_represented_thm_c1_hyp_buffered_actual_root
+public import SubdiffusiveProcess.Paper.conv_represented_joint_bounds
+public import SubdiffusiveProcess.Paper.lem_cutoffs_damped_extrema_uniform
+public import SubdiffusiveProcess.Paper.conv_represented_root_family
+
+@[expose] public section
+
+open Set Filter MeasureTheory TopologicalSpace SubdiffusiveProcess _root_.SubdiffusiveProcess.EllipticRegularity
+open scoped Topology ENNReal NNReal BigOperators ContDiff
+set_option autoImplicit false
+set_option relaxedAutoImplicit false
+noncomputable section
+namespace SubdiffusiveProcess.Paper
+
+/-- The actual model supplies both the joint representation and every represented-bounds field. -/
+theorem conv_represented_thm_c1_bounds_actual_root
+    (d : ℕ) (hd : 2 ≤ d)
+    [MeasurableSpace C(SpatialCoordinates d, ℝ)] [BorelSpace C(SpatialCoordinates d, ℝ)]
+    (hInterp : CubeFractionalInterpolationInput d hd)
+    (E : in_J d) (Pin : in_poincare d hd E) (X : in_extension d hd E)
+    (W : SmallPerturbationInput d) (Cp : CampanatoInput d)
+    (Sob : SobolevFoundationalInput d hd) (alpha eta beta t : ℝ)
+    (ht : (d : ℝ) - 1 < t) (htd : t < d) (ha0 : 0 < alpha) (ha1 : alpha < 1)
+    (heta : 0 < eta) (hAeta : 1 + eta < 2 * alpha) (hb : 1 / 2 < beta) (hba : beta < alpha) :
+    ∃ δ0 : ℝ, 0 < δ0 ∧
+      ∀ (M : _root_.SubdiffusiveProcess.Model.GMCModel d) (_Rm : in_responses d M)
+        (Sreg : in_6_16 d M) (_It : in_iteration d M E Sreg)
+        (H : BilateralField d → C(SpatialCoordinates d, ℝ)) (_hH : InfraredCharacterization M H),
+        M.delta ≤ δ0 →
+      ∀ (Z : ℕ → SpatialCoordinates d) (R : ℕ → ℝ) (hR : ∀ i, 0 < R i)
+        (Sspace : ∀ i, ResponseSpace (centeredCube (Z i) (R i) (hR i)))
+        (_hS : ∀ i, (Sspace i).space = killedSobolevGraph (centeredCube (Z i) (R i) (hR i)))
+        (_hrat : ∀ i, (∀ c : Fin d, ∃ q : ℚ, Z i c = (q : ℝ)) ∧ ∃ m : ℤ, R i = (3 : ℝ) ^ m)
+        (_hfam : conv_represented_root_family d Z R hR)
+        (NE NF : ℕ → ℕ), StrictMono NE → StrictMono NF →
+      ∃ seq : ℕ → ℕ, StrictMono seq ∧
+        ∃ (Ωh : Type) (_ : MeasurableSpace Ωh) (Ph : Measure Ωh) (_ : IsProbabilityMeasure Ph)
+          (field : Ωh → BilateralField d) (env : ℕ → Ωh → BilateralField d)
+          (GNE GNF : (i : ℕ) → ℕ → Ωh →
+            DomainL2 (centeredCube (Z i) (R i) (hR i)) →L[ℝ]
+              DomainL2 (centeredCube (Z i) (R i) (hR i)))
+          (GE GF : (i : ℕ) → Ωh →
+            DomainL2 (centeredCube (Z i) (R i) (hR i)) →L[ℝ]
+              DomainL2 (centeredCube (Z i) (R i) (hR i))),
+          conv_represented_joint_buffered d hd M H Ωh Ph field env env Z R hR Sspace
+            GNE GNF GE GF (fun n => NE (seq n)) (fun n => NF (seq n)) alpha eta ∧
+          aux_conv_represented_env_interface_bounds d hd M H Ωh Ph env env Z R hR Sspace GE GF
+            (fun n => NE (seq n)) (fun n => NF (seq n)) := by
+  obtain ⟨deltaCat, hDeltaCat, hcat⟩ := conv_represented_thm_c1_hyp_buffered_actual_root
+    d hd hInterp E Pin X W Cp Sob alpha eta beta t ht htd ha0 ha1 heta hAeta hb hba
+  obtain ⟨deltaExt, hDeltaExt, hext⟩ := lem_cutoffs_damped_extrema_uniform d hd eta heta
+  refine ⟨min deltaCat deltaExt, lt_min hDeltaCat hDeltaExt, ?_⟩
+  intro M Rm Sreg It H hH hDelta Z R hR Sspace hS hrat hfam NE NF hNE hNF
+  obtain ⟨seq, hseq, Ωh, mΩh, Ph, hPh, field, env, GNE, GNF, GE, GF, hjoint⟩ :=
+    hcat M Rm Sreg It H hH (hDelta.trans (min_le_left _ _)) Z R hR Sspace hS hrat hfam
+      NE NF hNE hNF
+  have : IsProbabilityMeasure Ph := hPh
+  refine ⟨seq, hseq, Ωh, mΩh, Ph, hPh, field, env, GNE, GNF, GE, GF, hjoint, ?_⟩
+  exact conv_represented_joint_bounds d hd M H Ωh Ph field env env Z R hR Sspace GNE GNF GE GF
+    (fun n => NE (seq n)) (fun n => NF (seq n)) alpha eta hInterp
+    (fun hIR => hext M H hIR (hDelta.trans (min_le_right _ _))) hjoint
+
+end SubdiffusiveProcess.Paper

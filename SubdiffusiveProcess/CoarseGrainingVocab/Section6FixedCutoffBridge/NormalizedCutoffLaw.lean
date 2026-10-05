@@ -1,0 +1,47 @@
+module
+
+public import SubdiffusiveProcess.CoarseGrainingVocab.ACutoffNormalization
+
+@[expose] public section
+
+
+
+
+namespace SubdiffusiveProcess.CoarseGrainingVocab.Section6FixedCutoffBridge
+
+open MeasureTheory Homogenization Homogenization.Book
+
+noncomputable section
+
+/-- The Chapter 4 restriction law of the fixed cutoff `a_L`, rescaled to unit
+range: the law has `Ahat_L` up to the deterministic
+normalization `D_L`. -/
+noncomputable def normalizedCutoffLaw {d : ℕ}
+    (M : _root_.SubdiffusiveProcess.Model.GMCModel d) (L : ℕ) : Ch04.RestrictionCoeffLaw d :=
+  Ch04.restrictionScaleNormalizedLaw (aCutoffNormalizationDepth d L)
+    (aCutoffRestrictionLaw M L)
+
+/-- The Chapter 4 probability / local-ellipticity carrier of the normalized
+cutoff law. -/
+theorem normalizedCutoffLaw_lawCarrier {d : ℕ}
+    (M : _root_.SubdiffusiveProcess.Model.GMCModel d) (L : ℕ) :
+    Ch04.RestrictionLawCarrier (normalizedCutoffLaw M L) :=
+  (aCutoffRestrictionLaw_lawCarrier M L).scaleNormalized
+    (aCutoffNormalizationDepth d L)
+
+/-- The Chapter 4 structural package (stationary, unit range, isotropic,
+adjoint invariant) of the normalized cutoff law. -/
+theorem normalizedCutoffLaw_structuralLaw {d : ℕ}
+    (M : _root_.SubdiffusiveProcess.Model.GMCModel d) (L : ℕ) :
+    Ch04.RestrictionStructuralLaw (normalizedCutoffLaw M L) :=
+  aCutoffNormalization_structuralLaw M L
+
+/-- The normalized cutoff law is a probability law. -/
+theorem normalizedCutoffLaw_isProbabilityMeasure {d : ℕ}
+    (M : _root_.SubdiffusiveProcess.Model.GMCModel d) (L : ℕ) :
+    IsProbabilityMeasure (normalizedCutoffLaw M L) :=
+  (normalizedCutoffLaw_lawCarrier M L).isProbability
+
+end
+
+end SubdiffusiveProcess.CoarseGrainingVocab.Section6FixedCutoffBridge

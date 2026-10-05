@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use this formalization, please cite it as below."
+title: "Subdiffusive process: a Lean 4 formalization of the anomalous scaling limit of a Brownian particle in a log-correlated potential"
+type: software
+repository-code: "https://github.com/nitromannitol/subdiffusive-process"
+abstract: >-
+  A machine-checked Lean 4 and Mathlib formalization of the scaling limit of a
+  Brownian particle in a log-correlated random potential, of the quantitative
+  homogenization of the associated elliptic operators, and of their anomalous
+  large-scale Hölder regularity. The theorems hold for every random environment
+  satisfying the standing assumptions of the paper. The library contains no sorry
+  and no custom axiom, and each headline theorem has a Mathlib-only comparator
+  challenge.
+authors:
+  - family-names: Armstrong
+    given-names: Scott
+  - family-names: Bou-Rabee
+    given-names: Ahmed
+  - family-names: Kuusi
+    given-names: Tuomo
+keywords:
+  - Lean
+  - mathlib
+  - formal verification
+  - subdiffusion
+  - stochastic homogenization
+  - log-correlated fields
+license: Apache-2.0
+references:
+  - type: article
+    title: "Anomalous scaling limit of a Brownian particle in a log-correlated potential"
+    authors:
+      - family-names: Armstrong
+        given-names: Scott
+      - family-names: Bou-Rabee
+        given-names: Ahmed
+      - family-names: Kuusi
+        given-names: Tuomo
+    notes: "The paper formalized by this repository (preprint forthcoming). Its source and PDF are in paper/."

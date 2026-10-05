@@ -1,0 +1,218 @@
+name: Comparator audit
+
+permissions:
+  contents: read
+
+# Pinned independent comparator route, using the Superdiffusion 7f20476
+# verification-tool revisions. The shared runner builds the project and audit
+# modules, tests sandbox enforcement, and requires every pair to pass Lean and
+# NanoDa replay. Palomar's bundled-kernel route has its own workflow.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: comparator-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  COMPARATOR_REV: "32bd61d"      # leanprover/comparator commit
+  LEAN4EXPORT_REV: "v4.35.0-rc2" # MUST match ./lean-toolchain
+  NANODA_REV: "6ae1f0c"          # ammkrn/nanoda_lib commit
+  LANDRUN_REV: "811cfff"         # Zouuup/landrun commit (v0.1.18)
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1 — the two source dependencies, byte-for-byte the `deps` job of
+  # `build.yml` and sharing its cache key, so whichever workflow runs first
+  # pays for them and the other one restores.
+  # ---------------------------------------------------------------------------
+  deps:
+    name: Dependency oleans
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Reclaim runner disk space
+        shell: bash
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghcup /usr/local/share/powershell \
+                      /usr/share/swift /usr/local/share/boost || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
+
+      - name: Enlarge swap
+        shell: bash
+        run: |
+          sudo swapoff -a || true
+          swapdir=/mnt
+          [ -d "$swapdir" ] || swapdir="${RUNNER_TEMP:-/tmp}"
+          sudo rm -f "$swapdir/lean-swapfile"
+          sudo fallocate -l 16G "$swapdir/lean-swapfile"
+          sudo chmod 600 "$swapdir/lean-swapfile"
+          sudo mkswap "$swapdir/lean-swapfile"
+          sudo swapon "$swapdir/lean-swapfile"
+          free -h
+
+      - name: Set up Lean and fetch the Mathlib cache
+        uses: leanprover/lean-action@v1
+        with:
+          build: false
+          use-mathlib-cache: true
+
+      - name: Restore the dependency build cache
+        id: deps-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .lake/packages/CoarseGraining/.lake/build
+            .lake/packages/MarkovProcess/.lake/build
+          key: lake-deps-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+
+      - name: Build the dependency packages
+        run: lake build @CoarseGraining @MarkovProcess
+
+      - name: Save the dependency build cache
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .lake/packages/CoarseGraining/.lake/build
+            .lake/packages/MarkovProcess/.lake/build
+          key: lake-deps-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+
+  # ---------------------------------------------------------------------------
+  # Job 2 — the audit surfaces, the four tools, and the three comparator runs.
+  # ---------------------------------------------------------------------------
+  comparator:
+    name: Comparator over the three pairs
+    needs: deps
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Reclaim runner disk space
+        shell: bash
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghcup /usr/local/share/powershell \
+                      /usr/share/swift /usr/local/share/boost || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
+
+      - name: Enlarge swap
+        shell: bash
+        run: |
+          sudo swapoff -a || true
+          swapdir=/mnt
+          [ -d "$swapdir" ] || swapdir="${RUNNER_TEMP:-/tmp}"
+          sudo rm -f "$swapdir/lean-swapfile"
+          sudo fallocate -l 16G "$swapdir/lean-swapfile"
+          sudo chmod 600 "$swapdir/lean-swapfile"
+          sudo mkswap "$swapdir/lean-swapfile"
+          sudo swapon "$swapdir/lean-swapfile"
+          free -h
+
+      - name: Set up Lean and fetch the Mathlib cache
+        uses: leanprover/lean-action@v1
+        with:
+          build: false
+          use-mathlib-cache: true
+
+      - name: Restore the dependency build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .lake/packages/CoarseGraining/.lake/build
+            .lake/packages/MarkovProcess/.lake/build
+          key: lake-deps-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+
+      # Restore only, never save: the CI workflow owns this key, and one copy of
+      # `.lake/build` in the repository's 10 GB cache quota is enough.  A miss
+      # here just means this job compiles the library itself.
+      - name: Restore project build artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: .lake/build
+          key: lake-proj-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-${{ github.sha }}
+          restore-keys: |
+            lake-proj-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-
+
+      - name: Restore verification tools
+        id: tools-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/tools
+          key: cmp-tools-${{ env.COMPARATOR_REV }}-${{ env.LEAN4EXPORT_REV }}-${{ env.NANODA_REV }}-${{ env.LANDRUN_REV }}
+
+      # The comparator pins its own `lean-toolchain`, which is *not* this
+      # project's; elan installs that second toolchain on demand here.
+      - name: Build comparator
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/tools
+          git clone https://github.com/leanprover/comparator ~/tools/comparator
+          git -C ~/tools/comparator checkout "$COMPARATOR_REV"
+          cd ~/tools/comparator && lake build
+
+      - name: Build lean4export (toolchain-matched)
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/leanprover/lean4export ~/tools/lean4export
+          git -C ~/tools/lean4export checkout "$LEAN4EXPORT_REV"
+          test "$(cat ~/tools/lean4export/lean-toolchain)" = "$(cat lean-toolchain)" \
+            || { echo "lean4export toolchain does not match project toolchain"; exit 1; }
+          cd ~/tools/lean4export && lake build
+
+      - name: Set up Go (for landrun)
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build landrun (static)
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/Zouuup/landrun ~/tools/landrun-src
+          git -C ~/tools/landrun-src checkout "$LANDRUN_REV"
+          mkdir -p ~/tools/bin
+          cd ~/tools/landrun-src && CGO_ENABLED=0 go build -o ~/tools/bin/landrun ./cmd/landrun
+
+      - name: Build nanoda
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: |
+          command -v rustup >/dev/null || {
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain none
+            . "$HOME/.cargo/env"
+          }
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup toolchain install stable --profile minimal
+          git clone https://github.com/ammkrn/nanoda_lib ~/tools/nanoda_lib
+          git -C ~/tools/nanoda_lib checkout "$NANODA_REV"
+          cd ~/tools/nanoda_lib && PATH="$HOME/.cargo/bin:$PATH" cargo +stable build --release
+
+      # Saved only on success, so a half-built tool tree can never be banked
+      # under the pinned key and skipped by the next run.
+      - name: Save verification tools
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/tools
+          key: cmp-tools-${{ env.COMPARATOR_REV }}-${{ env.LEAN4EXPORT_REV }}-${{ env.NANODA_REV }}-${{ env.LANDRUN_REV }}
+
+      - name: Run every pinned comparator pair
+        shell: bash
+        run: ./scripts/run_comparators.sh
+
+      - name: Upload comparator logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-logs
+          path: .lake/comparator-logs/pinned/*.log
