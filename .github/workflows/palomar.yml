@@ -107,34 +107,42 @@ jobs:
           bash "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
           "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
-      - name: Verify public dependency pins without credentials or URL rewrites
+      - name: Rehearsal only — verify exact pins through temporary URL rewrites
         shell: bash
         env:
+          DEPENDENCY_READ_TOKEN: ${{ secrets.DEPENDENCY_READ_TOKEN }}
           GIT_CONFIG_NOSYSTEM: '1'
-          GIT_CONFIG_GLOBAL: /dev/null
           GIT_TERMINAL_PROMPT: '0'
         run: |
           python3 - <<'PYVERIFY'
           import json, os, pathlib, subprocess, tempfile
           expected = {
-              'CoarseGraining': ('https://github.com/scottnarmstrong/CoarseGraining',
-                                'df82db0a9e5ff2c11c5c6faa2777fd83bfdbb013'),
-              'MarkovProcess': ('https://github.com/scottnarmstrong/MarkovProcess',
-                               '814b0f8820c2da712eb79574ea7ca3be8db4b69d'),
+              'CoarseGraining': 'df82db0a9e5ff2c11c5c6faa2777fd83bfdbb013',
+              'MarkovProcess': '814b0f8820c2da712eb79574ea7ca3be8db4b69d',
           }
-          packages = {p['name']: p for p in json.load(open('lake-manifest.json'))['packages']}
-          for name, (url, revision) in expected.items():
-              pin = packages[name]
-              if (pin['url'], pin['rev']) != (url, revision):
-                  raise SystemExit('Unexpected public dependency pin: ' + name)
-              with tempfile.TemporaryDirectory(prefix='public-pin-', dir=os.environ['RUNNER_TEMP']) as td:
-                  subprocess.run(['git', 'init', td], check=True)
-                  subprocess.run(['git', '-C', td, '-c', 'credential.helper=',
-                                  '-c', 'http.extraheader=', 'fetch', '--depth=1', url, revision], check=True)
-                  actual = subprocess.check_output(['git', '-C', td, 'rev-parse', 'FETCH_HEAD'], text=True).strip()
+          packages = {p['name']: p for p in json.loads(pathlib.Path('lake-manifest.json').read_text())['packages']}
+          if not os.environ.get('DEPENDENCY_READ_TOKEN'):
+              raise SystemExit('Rehearsal dependency-read secret absent')
+          with tempfile.TemporaryDirectory(prefix='dependency-rehearsal-', dir=os.environ['RUNNER_TEMP']) as td:
+              base = pathlib.Path(td)
+              askpass = base / 'askpass.py'
+              askpass.write_text("#!/usr/bin/env python3\nimport os,sys\nprint('x-access-token' if 'Username' in sys.argv[1] else os.environ['DEPENDENCY_READ_TOKEN'])\n")
+              askpass.chmod(0o700)
+              config = base / 'gitconfig'
+              config.write_text(''.join('[url "https://github.com/nitromannitol/' + n + '"]\n  insteadOf = https://github.com/scottnarmstrong/' + n + '\n' for n in expected))
+              env = dict(os.environ, GIT_CONFIG_GLOBAL=str(config), GIT_ASKPASS=str(askpass))
+              for name, revision in expected.items():
+                  url = 'https://github.com/scottnarmstrong/' + name
+                  if packages[name]['url'] != url or packages[name]['rev'] != revision:
+                      raise SystemExit('Unexpected manifest pin: ' + name)
+                  work = base / name
+                  subprocess.run(['git', 'init', str(work)], check=True, env=env)
+                  subprocess.run(['git', '-C', str(work), '-c', 'credential.helper=', '-c', 'http.extraheader=',
+                                  'fetch', '--depth=1', url, revision], check=True, env=env)
+                  actual = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'FETCH_HEAD'], text=True, env=env).strip()
                   if actual != revision:
-                      raise SystemExit('Fetched public revision mismatch: ' + name)
-                  print(name + ': credential-free public fetch verified at ' + actual)
+                      raise SystemExit('Rehearsal dependency revision mismatch: ' + name)
+                  print(name + ': rehearsal fetch verified at ' + actual + '; temporary URL rewrite used')
           PYVERIFY
       - name: Download immutable prebuilt inputs
         env:
