@@ -1,7 +1,7 @@
 version: "v0.4"
 
 project:
-  name: "subdiffusive-process"
+  name: "Anomalous scaling limit of a Brownian particle in a log-correlated potential"
   description: >-
     A Lean 4 formalization of the paper "Anomalous scaling limit of a Brownian
     particle in a log-correlated potential" by Armstrong, Bou-Rabee and Kuusi: the

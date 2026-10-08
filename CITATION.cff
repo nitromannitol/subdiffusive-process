@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this formalization, please cite it as below."
-title: "Subdiffusive process: a Lean 4 formalization of the anomalous scaling limit of a Brownian particle in a log-correlated potential"
+title: "Anomalous scaling limit of a Brownian particle in a log-correlated potential"
 type: software
 repository-code: "https://github.com/nitromannitol/subdiffusive-process"
 abstract: >-

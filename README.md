@@ -1,4 +1,4 @@
-# Subdiffusive process
+# Anomalous scaling limit of a Brownian particle in a log-correlated potential
 
 A machine-checked **Lean 4** formalization of the paper
 
@@ -279,7 +279,9 @@ Both require every pair to pass, and both write logs under `.lake/comparator-log
 
 The continuous-integration workflows in [`.github/workflows/`](.github/workflows/) run the
 build with the axiom audit (`build.yml`), the pinned-tool route (`comparator.yml`) and the
-bundled-kernel route (`palomar.yml`). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build
+bundled-kernel route (`palomar.yml`). These workflows are started manually from the
+[Actions page](https://github.com/nitromannitol/subdiffusive-process/actions); pushes do
+not start them automatically. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build
 conventions.
 
 ## Repository layout
