@@ -6,6 +6,9 @@ A machine-checked **Lean 4** formalization of the paper
 > *Anomalous scaling limit of a Brownian particle in a log-correlated potential*
 > (preprint forthcoming).
 
+[![CI](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml)
+[![Comparator audit](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/palomar.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/palomar.yml)
+
 The paper's source, bibliography, figures and compiled PDF are included under
 [`paper/`](paper/). The three main theorems of the paper are proved, in the form in
 which its introduction states them, **for every random environment that satisfies the
