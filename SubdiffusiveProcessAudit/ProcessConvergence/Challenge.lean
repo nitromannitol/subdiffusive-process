@@ -878,58 +878,64 @@ the cutoff resolvent identification, the finite-dimensional distributions of `KN
 strong Markov property of `K` (almost surely in the environment); then (i) `AnnealedConvergence`,
 (ii) and (iv) `SingularReversibleMarginals`, (iii) `AnomalousScaling`. -/
 theorem theoremA (d : ℕ) [MeasurableSpace C(SpatialCoordinates d, ℝ)]
-    [BorelSpace C(SpatialCoordinates d, ℝ)] (hd : 2 ≤ d) :
-    ∃ delta0 : ℝ,
-      0 < delta0 ∧
-        ∀ (M : SubdiffusiveProcess.Model.GMCModel d),
-          0 < M.delta →
-            M.delta ≤ delta0 →
-              let forget :
-                C(SubdiffusiveProcess.Model.PotentialField d,
-                  C(SpatialCoordinates d, ℝ)) :=
-                ⟨fun g ↦ g.1.1, continuous_subtype_val.fst⟩
-              let nu := (SubdiffusiveProcess.Model.zeroPotentialLaw M.P).map forget
-              let law := (commonScaleLaw d nu).toMeasure
-              ∃ C eta : ℝ,
-                0 < eta ∧
-                  (d = 2 → eta = SubdiffusiveProcess.Model.tauSq M.P / Real.log 3) ∧
-                    ∃ H : BilateralField d → C(SpatialCoordinates d, ℝ),
-                      Measurable H ∧
-                        ∃ PN :
-                          ℕ → BilateralField d → SubMarkovKernelSemigroup (SpatialCoordinates d),
-                          ∃ _hPN : ∀ N omega, (PN N omega).IsConservative,
-                            ∃ P :
-                              BilateralField d → SubMarkovKernelSemigroup (SpatialCoordinates d),
-                              ∃ _hP : ∀ omega, (P omega).IsConservative,
-                                ∃ KN :
-                                  ℕ →
-                                    Kernel (BilateralField d × SpatialCoordinates d)
-                                      (DiffusionPath d),
-                                  ∃ _hKN : ∀ N, IsMarkovKernel (KN N),
-                                    ∃ K :
-                                      Kernel (BilateralField d × SpatialCoordinates d)
-                                        (DiffusionPath d),
-                                      ∃ hK : IsMarkovKernel K,
-                                        (∀ omega : BilateralField d,
-                                            Continuous
-                                              (fun x ↦ jointPathProbabilityMeasure K hK omega x)) ∧
-                                          (∀ᵐ omega ∂law,
-                                              Tendsto (infraredPartialSum omega) atTop
-                                                  (nhds (H omega)) ∧
-                                                (∀ N, IsCutoffResolvent M H omega N PN) ∧
-                                                  (∀ N I x,
-                                                      (KN N).map (ContinuousPath.finsetEvaluation I)
-                                                          (omega, x) =
-                                                        SubMarkovKernelSemigroup.finiteSetKernel
-                                                          (PN N omega) I x) ∧
-                                                    (∀ I x,
-                                                        K.map (ContinuousPath.finsetEvaluation I)
-                                                            (omega, x) =
-                                                          SubMarkovKernelSemigroup.finiteSetKernel
-                                                            (P omega) I x) ∧
-                                                      HasStrongMarkovRestart K omega) ∧
-                                            AnnealedConvergence M law KN K ∧
-                                              SingularReversibleMarginals M H law P K ∧
-                                                AnomalousScaling C eta law K :=
+  [BorelSpace C(SpatialCoordinates d, ℝ)] (hd : 2 ≤ d) :
+  ∃ delta0 : ℝ,
+   0 < delta0 ∧
+    ∀ (M : SubdiffusiveProcess.Model.GMCModel d),
+     0 < M.delta →
+      M.delta ≤ delta0 →
+       let forget :
+        C(SubdiffusiveProcess.Model.PotentialField d,
+         C(SpatialCoordinates d, ℝ)) :=
+        ⟨fun g ↦ g.1.1, continuous_subtype_val.fst⟩
+       let nu := (SubdiffusiveProcess.Model.zeroPotentialLaw M.P).map
+        forget
+       let law := (commonScaleLaw d nu).toMeasure
+       ∃ C eta : ℝ,
+        0 < eta ∧
+         (d = 2 → eta = SubdiffusiveProcess.Model.tauSq M.P / Real.log
+          3) ∧
+          ∃ H : BilateralField d → C(SpatialCoordinates d, ℝ),
+           Measurable H ∧
+            ∃ PN :
+             ℕ → BilateralField d → SubMarkovKernelSemigroup
+              (SpatialCoordinates d),
+             ∃ _hPN : ∀ N omega, (PN N omega).IsConservative,
+              ∃ P :
+               BilateralField d → SubMarkovKernelSemigroup
+                (SpatialCoordinates d),
+               ∃ _hP : ∀ omega, (P omega).IsConservative,
+                ∃ KN :
+                 ℕ →
+                  Kernel (BilateralField d × SpatialCoordinates d)
+                   (DiffusionPath d),
+                 ∃ _hKN : ∀ N, IsMarkovKernel (KN N),
+                  ∃ K :
+                   Kernel (BilateralField d × SpatialCoordinates d)
+                    (DiffusionPath d),
+                   ∃ hK : IsMarkovKernel K,
+                    (∀ omega : BilateralField d,
+                      Continuous
+                       (fun x ↦ jointPathProbabilityMeasure K hK omega
+                        x)) ∧
+                     (∀ᵐ omega ∂law,
+                       Tendsto (infraredPartialSum omega) atTop
+                         (nhds (H omega)) ∧
+                        (∀ N, IsCutoffResolvent M H omega N PN) ∧
+                         (∀ N I x,
+                           (KN N).map (ContinuousPath.finsetEvaluation
+                            I)
+                             (omega, x) =
+                            SubMarkovKernelSemigroup.finiteSetKernel
+                             (PN N omega) I x) ∧
+                          (∀ I x,
+                            K.map (ContinuousPath.finsetEvaluation I)
+                              (omega, x) =
+                             SubMarkovKernelSemigroup.finiteSetKernel
+                              (P omega) I x) ∧
+                           HasStrongMarkovRestart K omega) ∧
+                      AnnealedConvergence M law KN K ∧
+                       SingularReversibleMarginals M H law P K ∧
+                        AnomalousScaling C eta law K :=
   by sorry
 end SubdiffusiveProcessAudit.ProcessConvergence

@@ -219,13 +219,20 @@ fidelity:
 
 review:
   status: "agent-reviewed"
-  reviewers: []
+  reviewers:
+    - "GPT-6.1 Sol, high reasoning, independent agent review (2026-10-08)"
   notes: >-
     Every proof is checked by the Lean kernel and Mathlib, and the three headline
     statements are additionally replayed by independent kernels through
     leanprover/comparator. The formal statements were compared with the paper by
-    AI-assisted reviews under the direction of the authors. This is not external peer
-    review.
+    AI-assisted reviews under the direction of the authors. An independent GPT-6.1 Sol
+    review on 2026-10-08 checked the three comparator statements against the paper and
+    exercised the Palomar Verso rendering route, including embedded views at widths of
+    1280, 900 and 768 pixels. A whitespace-only presentation repair preserved the complete
+    expanded Lean types of all three statements. This is an agent review, not external
+    peer review or a Palomar submission. Hosted build and comparator results are recorded
+    separately in the repository's GitHub Actions runs. The included manuscript is the
+    exact submitted arXiv version and is unchanged by the repository's publication.
 
 alignment:
   namespace: "SubdiffusiveProcess"

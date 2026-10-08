@@ -279,9 +279,10 @@ Both require every pair to pass, and both write logs under `.lake/comparator-log
 
 The continuous-integration workflows in [`.github/workflows/`](.github/workflows/) run the
 build with the axiom audit (`build.yml`), the pinned-tool route (`comparator.yml`) and the
-bundled-kernel route (`palomar.yml`). These workflows are started manually from the
-[Actions page](https://github.com/nitromannitol/subdiffusive-process/actions); pushes do
-not start them automatically. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build
+bundled-kernel route (`palomar.yml`). The build runs on pushes to `main`; all three
+workflows can also be started manually from the
+[Actions page](https://github.com/nitromannitol/subdiffusive-process/actions).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build
 conventions.
 
 ## Repository layout

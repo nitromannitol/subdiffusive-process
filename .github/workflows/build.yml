@@ -8,12 +8,14 @@ permissions:
 # repository's Actions cache in scope, and the cached `.lake` trees are the
 # artifacts every later gate trusts.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
-# Cancel superseded runs on the same ref.
+# Keep an active build so its completed dependency and project caches can be saved.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   # ---------------------------------------------------------------------------

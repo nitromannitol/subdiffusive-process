@@ -731,54 +731,57 @@ cutoffs `L` (including `L = ∞`), all `m`, all weakly harmonic `u`, all `n` and
 Liouville candidates. The sample law is the pullback of `M.P` to the anchored `C^{1,1}` carrier.
 -/
 theorem theoremC (d : ℕ) (hd : 2 ≤ d) :
-    ∃ delta0 C0 C : ℝ,
-      0 < delta0 ∧
-        0 < C0 ∧
-          0 < C ∧
-            ∀ M : GMCModel d,
-              M.delta ≤ delta0 →
-                let mu :=
-                  Measure.comap (Subtype.val : AnchoredC11Sample d → PotentialSample d)
-                    M.P.toMeasure
-                gammaReg C0 M.delta ∈ Set.Ioo (1 / 2 : ℝ) 1 ∧
-                  ∀ gamma ∈ Set.Icc (1 / 2 : ℝ) (gammaReg C0 M.delta),
-                    ∃ Lscale : WithTop ℕ → ℕ → AnchoredC11Sample d → ℕ,
-                      (∀ (L : WithTop ℕ) (m : ℕ), Measurable (Lscale L m)) ∧
-                        (∀ (L : WithTop ℕ) (m k : ℕ),
-                            0 < k →
-                              mu {omega | k < Lscale L m omega} ≤
-                                ENNReal.ofReal
-                                  (C *
-                                    Real.exp
-                                      (-((1 - gamma) ^ 2 * max ((k : ℝ) - C) 0) /
-                                        (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
-                          ∀ᵐ omega ∂mu,
-                            (∀ (L : WithTop ℕ) (m : ℕ),
-                                0 < m →
-                                  ∀ u : H1Function (openCubeSet (originCube d m)),
-                                    IsWeaklyHarmonicOn (coefficientAt M L omega) (cube d m) u →
-                                      ∀ n : ℕ,
-                                        (n : ℤ) ≤ (m : ℤ) - (Lscale L m omega : ℤ) →
-                                          ∀ z : Homogenization.Vec d,
-                                            OnTriadicGrid n z →
-                                              translatedCube d n z ⊆ cube d (m - 1) →
-                                                OscillationDecay gamma C m n z u ∧
-                                                  EnergyGrowth (coefficientAt M L omega) gamma C m n
-                                                    z u) ∧
-                              (∀ (L : WithTop ℕ) (u : Homogenization.Vec d → ℝ),
-                                IsEntireHarmonic (coefficientAt M L omega) u →
-                                  HasSubcriticalGrowth (gammaReg C0 M.delta) u →
-                                    ∃ uRep : Homogenization.Vec d → ℝ,
-                                      Continuous uRep ∧
-                                        uRep =ᵐ[volume] u ∧
-                                          (∀ m : ℤ,
-                                              ∀ um : H1Function (openCubeSet (originCube d m)),
-                                                (∀ x, um.toFun x = u x) →
-                                                  IsWeaklyHarmonicOn (coefficientAt M L omega)
-                                                      (cube d m) um →
-                                                    uRep =ᵐ[volume.restrict
-                                                        (openCubeSet (originCube d m))]
-                                                      um.toFun) ∧
-                                            ∃ c : ℝ, ∀ x, uRep x = c) :=
+  ∃ delta0 C0 C : ℝ,
+   0 < delta0 ∧
+    0 < C0 ∧
+     0 < C ∧
+      ∀ M : GMCModel d,
+       M.delta ≤ delta0 →
+        let mu :=
+         Measure.comap (Subtype.val : AnchoredC11Sample d →
+          PotentialSample d)
+          M.P.toMeasure
+        gammaReg C0 M.delta ∈ Set.Ioo (1 / 2 : ℝ) 1 ∧
+         ∀ gamma ∈ Set.Icc (1 / 2 : ℝ) (gammaReg C0 M.delta),
+          ∃ Lscale : WithTop ℕ → ℕ → AnchoredC11Sample d → ℕ,
+           (∀ (L : WithTop ℕ) (m : ℕ), Measurable (Lscale L m)) ∧
+            (∀ (L : WithTop ℕ) (m k : ℕ),
+              0 < k →
+               mu {omega | k < Lscale L m omega} ≤
+                ENNReal.ofReal
+                 (C *
+                  Real.exp
+                   (-((1 - gamma) ^ 2 * max ((k : ℝ) - C) 0) /
+                    (C * M.delta ^ 2 * |Real.log M.delta|)))) ∧
+             ∀ᵐ omega ∂mu,
+              (∀ (L : WithTop ℕ) (m : ℕ),
+                0 < m →
+                 ∀ u : H1Function (openCubeSet (originCube d m)),
+                  IsWeaklyHarmonicOn (coefficientAt M L omega) (cube d
+                   m) u →
+                   ∀ n : ℕ,
+                    (n : ℤ) ≤ (m : ℤ) - (Lscale L m omega : ℤ) →
+                     ∀ z : Homogenization.Vec d,
+                      OnTriadicGrid n z →
+                       translatedCube d n z ⊆ cube d (m - 1) →
+                        OscillationDecay gamma C m n z u ∧
+                         EnergyGrowth (coefficientAt M L omega) gamma C
+                          m n
+                          z u) ∧
+               (∀ (L : WithTop ℕ) (u : Homogenization.Vec d → ℝ),
+                IsEntireHarmonic (coefficientAt M L omega) u →
+                 HasSubcriticalGrowth (gammaReg C0 M.delta) u →
+                  ∃ uRep : Homogenization.Vec d → ℝ,
+                   Continuous uRep ∧
+                    uRep =ᵐ[volume] u ∧
+                     (∀ m : ℤ,
+                       ∀ um : H1Function (openCubeSet (originCube d m)),
+                        (∀ x, um.toFun x = u x) →
+                         IsWeaklyHarmonicOn (coefficientAt M L omega)
+                           (cube d m) um →
+                          uRep =ᵐ[volume.restrict
+                            (openCubeSet (originCube d m))]
+                           um.toFun) ∧
+                      ∃ c : ℝ, ∀ x, uRep x = c) :=
   by sorry
 end SubdiffusiveProcessAudit.AnomalousHolderRegularity

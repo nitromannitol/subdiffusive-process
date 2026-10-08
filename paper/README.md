@@ -18,8 +18,11 @@ version, by their LaTeX `\label`, to Lean declarations; the Lean files refer to 
 label only. Theorems A, B and C of the introduction carry the labels `t.A`, `t.B` and `t.C`,
 and the precise form of Theorem A carries `t.scaling.limit`.
 
-**arXiv source.** The reviewed source archive is available in the authors' private
-[manuscript repository](https://github.com/nitromannitol/periodic_multifractal_homogenization/blob/6532069f529ce5e4499526a1267309c7db9dee22/arxiv/multifractal-source.zip).
+**arXiv source.** The reviewed five-file source archive is included as
+[`arxiv/multifractal-source.zip`](arxiv/multifractal-source.zip).
+
+The included TeX, PDF and source archive are the exact submitted arXiv version. They
+remain unchanged when the formalization repository is published.
 
 **Building.** With a full TeX Live installation, run this in the present directory:
 
