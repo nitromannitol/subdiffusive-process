@@ -3,7 +3,7 @@ name: CI
 permissions:
   contents: read
 
-# Runs on GitHub-hosted runners (`ubuntu-latest`: 4 vCPU, 16 GB RAM, 6 h per
+# Runs on GitHub-hosted runners (`ubuntu-24.04`: 4 vCPU, 16 GB RAM, 6 h per
 # job).  No `pull_request` trigger: a fork's pull request would run with this
 # repository's Actions cache in scope, and the cached `.lake` trees are the
 # artifacts every later gate trusts.
@@ -35,7 +35,7 @@ jobs:
   # ---------------------------------------------------------------------------
   deps:
     name: Dependency oleans
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 330
     steps:
       - name: Checkout
@@ -77,7 +77,7 @@ jobs:
 
       - name: Restore the dependency build cache
         id: deps-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .lake/packages/CoarseGraining/.lake/build
@@ -95,7 +95,7 @@ jobs:
       # have the next run treat it as complete.
       - name: Save the dependency build cache
         if: steps.deps-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: |
             .lake/packages/CoarseGraining/.lake/build
@@ -108,7 +108,7 @@ jobs:
   build:
     name: Build and axiom audit
     needs: deps
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 330
     steps:
       - name: Checkout
@@ -144,7 +144,7 @@ jobs:
 
       # Written by the `deps` job of this same run.
       - name: Restore the dependency build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .lake/packages/CoarseGraining/.lake/build
@@ -159,7 +159,7 @@ jobs:
       # commit's — which is what makes an ordinary push an incremental build.
       - name: Restore project build artifacts
         id: cache-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: .lake/build
           key: lake-proj-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-${{ github.sha }}
@@ -193,7 +193,7 @@ jobs:
 
       - name: Save project build artifacts
         if: always() && steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: .lake/build
           key: lake-proj-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-${{ github.sha }}

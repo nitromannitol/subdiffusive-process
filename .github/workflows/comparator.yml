@@ -23,7 +23,7 @@ concurrency:
 jobs:
   plan:
     name: Select comparator pairs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.pairs.outputs.matrix }}
     steps:
@@ -46,7 +46,7 @@ jobs:
   comparator:
     name: ${{ matrix.pair }} — Lean, NanoDa, con-ron
     needs: plan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 345
     strategy:
       fail-fast: false
@@ -270,8 +270,9 @@ jobs:
           python3 scripts/run_prebuilt_pair.py --pair '${{ matrix.pair }}'
       - name: Retain exact per-pair outputs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
+          archive: true
           name: comparator-${{ matrix.pair }}-${{ github.sha }}
           path: .lake/comparator-logs/palomar/${{ matrix.pair }}/
           if-no-files-found: warn
@@ -279,7 +280,7 @@ jobs:
     name: Every comparator pair passed
     needs: comparator
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Require every matrix job to succeed
         env:
