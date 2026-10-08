@@ -1,10 +1,10 @@
 # Hosted comparator workflow and its prebuilt inputs
 
-The workflow [`.github/workflows/palomar.yml`](.github/workflows/palomar.yml) runs the
+The workflow [`.github/workflows/comparator.yml`](.github/workflows/comparator.yml) runs the
 independent comparator checks on GitHub-hosted runners, with the kernels bundled with the
 Lean toolchain. It runs one job per comparator pair: Theorem A
 (`ProcessConvergence`), Theorem B (`QuantitativeHomogenization`) and Theorem C
-(`AnomalousHolderRegularity`). Each job has a 180-minute limit. The planning estimates, which
+(`AnomalousHolderRegularity`). Each job has a 345-minute limit. The planning estimates, which
 include download, elaboration, export and all kernels, are 90, 60 and 90 minutes
 respectively. They are estimates, not measurements; each job saves its actual phase timings in
 `result.json`.

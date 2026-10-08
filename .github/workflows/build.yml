@@ -10,12 +10,18 @@ permissions:
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'paper/**'
+      - 'formalization.yaml'
+      - 'CITATION.cff'
+      - '.github/workflows-archive/**'
   workflow_dispatch:
 
-# Keep an active build so its completed dependency and project caches can be saved.
+# Cancel superseded runs on the same ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   # ---------------------------------------------------------------------------

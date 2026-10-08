@@ -6,9 +6,6 @@ A machine-checked **Lean 4** formalization of the paper
 > *Anomalous scaling limit of a Brownian particle in a log-correlated potential*
 > (preprint forthcoming).
 
-[![CI](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml)
-[![Comparator audit](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/palomar.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/palomar.yml)
-
 The paper's source, bibliography, figures and compiled PDF are included under
 [`paper/`](paper/). The three main theorems of the paper are proved, in the form in
 which its introduction states them, **for every random environment that satisfies the
@@ -21,8 +18,8 @@ homogenization library of Armstrong and Kuusi, and
 [MarkovProcess](https://github.com/scottnarmstrong/MarkovProcess), a library of
 continuous-time Markov processes and Feller semigroups.
 
-
-
+[![CI](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml)
+[![Comparator audit](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/comparator.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/comparator.yml)
 ## What is proved
 
 The paper studies a Brownian particle in `ℝᵈ`, `d ≥ 2`, whose drift is the gradient of a
@@ -264,29 +261,26 @@ To build the paper, run `latexmk -pdf multifractal.tex` in [`paper/`](paper/).
 ## Running the comparators
 
 Each comparator pair has a configuration `SubdiffusiveProcessAudit/<Pair>/comparator.json`
-that permits exactly `propext`, `Classical.choice` and `Quot.sound`. Two routes run them.
-Both require every pair to pass, and both write logs under `.lake/comparator-logs/`.
+that permits exactly `propext`, `Classical.choice` and `Quot.sound`. The comparator checks
+that the solution proves the challenge statement, compares their dependency closures, and
+replays the proof with the Lean, NanoDa and con-ron kernels.
 
-- **Pinned tools.** Build [leanprover/comparator](https://github.com/leanprover/comparator),
-  `lean4export`, [NanoDa](https://github.com/ammkrn/nanoda_lib) and
-  [landrun](https://github.com/Zouuup/landrun) at the revisions listed in
-  [`.github/workflows/comparator.yml`](.github/workflows/comparator.yml), set
-  `COMPARATOR_BIN`, `COMPARATOR_LANDRUN`, `COMPARATOR_LEAN4EXPORT` and `COMPARATOR_NANODA`
-  to their executables, and run `./scripts/run_comparators.sh`.
-- **Tools bundled with the Lean toolchain.** `lake comparator` ships with the pinned
-  toolchain together with NanoDa and con-ron kernels; it needs `bubblewrap` and, on Linux,
-  a memory-mapping limit of at least 131072 (`sudo sysctl -w vm.max_map_count=262144`).
-  Run `./scripts/run_comparators.sh --palomar`. This route follows the verification script of
-  the [Palomar template](https://github.com/PalomarRegistry/PalomarTemplate); see
-  [`CI_ARTIFACTS.md`](CI_ARTIFACTS.md) for how the hosted workflow runs it.
+To run all three pairs locally with the tools bundled with the pinned Lean toolchain:
 
-The continuous-integration workflows in [`.github/workflows/`](.github/workflows/) run the
-build with the axiom audit (`build.yml`), the pinned-tool route (`comparator.yml`) and the
-bundled-kernel route (`palomar.yml`). The build runs on pushes to `main`; all three
-workflows can also be started manually from the
-[Actions page](https://github.com/nitromannitol/subdiffusive-process/actions).
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build
-conventions.
+```bash
+./scripts/run_comparators.sh --palomar
+```
+
+This needs `bubblewrap` and, on Linux, a memory-mapping limit of at least 131072
+(`sudo sysctl -w vm.max_map_count=262144`). Logs are kept under `.lake/comparator-logs/`.
+The [comparator workflow](.github/workflows/comparator.yml) runs the same checks on
+GitHub-hosted runners, one job per pair; see [`CI_ARTIFACTS.md`](CI_ARTIFACTS.md).
+
+There are two continuous-integration workflows: **CI** builds the library and checks the
+axiom reports; **Comparator audit** checks all three challenge/solution pairs. CI runs on
+pushes to `main` that change code or build configuration. Both workflows can be started
+manually from the [Actions page](https://github.com/nitromannitol/subdiffusive-process/actions).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build conventions.
 
 ## Repository layout
 

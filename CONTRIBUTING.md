@@ -75,13 +75,12 @@ Each pair under `SubdiffusiveProcessAudit/` has a mathlib-only `Challenge.lean`,
 `Solution.lean` that proves the same statement from the library, and a `comparator.json` that
 permits exactly `propext`, `Classical.choice` and `Quot.sound`. Do not add a declaration to a
 challenge that the statement does not need, and do not change a challenge without checking it
-against the paper's statement. Run all pairs with `scripts/run_comparators.sh` or
+against the paper's statement. Run all pairs with
 `scripts/run_comparators.sh --palomar`, as described in the README. A missing pair, a missing
 tool or a failed kernel check is a failure. Logs are kept under `.lake/comparator-logs/`.
 
 ## Continuous integration
 
 `.github/workflows/build.yml` builds the library, rejects any warning and runs the axiom
-audit. `.github/workflows/comparator.yml` runs the comparators with separately pinned tools,
-and `.github/workflows/palomar.yml` runs them with the tools bundled with the Lean toolchain,
+audit. `.github/workflows/comparator.yml` runs the comparators with the kernels bundled with the Lean toolchain,
 one job per pair; see [`CI_ARTIFACTS.md`](CI_ARTIFACTS.md).
