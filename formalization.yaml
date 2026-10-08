@@ -40,7 +40,7 @@ sources:
     location: "paper/"
     note: >-
       The paper under formalization, preprint forthcoming. Its source, bibliography,
-      figures and compiled PDF are included under paper/, pinned to 2806669bc133074d5ff0f3059608f172abf8fda0;
+      figures and compiled PDF are included under paper/, pinned to 6532069f529ce5e4499526a1267309c7db9dee22;
       CORRESPONDENCE.md maps the statements of that version to Lean declarations, and
       its labels were checked against that version. Theorems A, B and C of the
       introduction are formalized as stated there.

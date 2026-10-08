@@ -215,7 +215,7 @@ which the paper takes for granted.
   MarkovProcess at the exact revisions recorded in [`lake-manifest.json`](lake-manifest.json)
   (see [Building](#building)).
 - **The paper is part of the repository.** The statement map refers to the version in
-  [`paper/`](paper/), pinned to `2806669bc133074d5ff0f3059608f172abf8fda0`.
+  [`paper/`](paper/), pinned to `6532069f529ce5e4499526a1267309c7db9dee22`.
 
 ## Size
 

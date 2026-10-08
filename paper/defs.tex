@@ -62,10 +62,6 @@
 \usepackage{pgf}
 \usetikzlibrary{calc}
 \usetikzlibrary{external}
-\tikzexternalize[prefix=tikz-figures/]
-
-% xr-hyper must precede hyperref (split of 2026-09-25; see tools/split/build.sh)
-\usepackage{xr-hyper}
 \usepackage[
 colorlinks=true,
 pdfstartview=FitV,
@@ -77,12 +73,23 @@ urlcolor=blue
 \hypersetup{citecolor=PineGreen,linkcolor=RoyalBlue,urlcolor=BrickRed}
 \fi
 
-% Show label keys in margin (remove for final version)
 \providecommand*\showkeyslabelformat[1]{{\normalfont\tiny#1}}
-\usepackage[notref,notcite,color]{showkeys}
-\definecolor{labelkey}{rgb}{0,0,1}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% RUN-IN HEADINGS (proof overview in Section 1, and Section 2)
+% Bold run-in \subsubsection and \paragraph headings, matching the arXiv version
+% of ASD. Use inside a group: \begingroup\runinsubsubsections ... \endgroup.
+\makeatletter
+\newcommand{\runinsubsubsections}{%
+	\renewcommand{\subsubsection}{\@startsection{subsubsection}{3}%
+		\z@{.5\linespacing\@plus.7\linespacing}{-.5em}%
+		{\normalfont\bfseries}}}
+\newcommand{\runinparagraphs}[1][3.25ex\@plus1ex\@minus.2ex]{%
+	\renewcommand{\paragraph}{\@startsection{paragraph}{4}%
+		\z@{#1}{-1em}%
+		{\normalfont\bfseries}}}
+\makeatother
+
 %%% PAGE FORMATTING (titlesec must come before fancyhdr)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -448,14 +455,3 @@ urlcolor=blue
 \newcommand{\tuomo}[1]{\textcolor{magenta}{#1}}
 \newcommand{\scott}[1]{\textcolor{cyan}{#1}}
 \newcommand{\ahmed}[1]{\textcolor{purple}{#1}}
-
-% Cross-references from the main draft to the companion heat-kernel paper (split of
-% 2026-09-25). Active only for the job `multifractal'; tools/split/build.sh writes
-% heatkernel-xr.aux, the labels of heatkernel.aux not defined in the main draft.
-\makeatletter
-\edef\split@job{\jobname}
-\edef\split@main{\detokenize{multifractal}}
-\ifx\split@job\split@main
-  \externaldocument{heatkernel-xr}[heatkernel.pdf]
-\fi
-\makeatother
