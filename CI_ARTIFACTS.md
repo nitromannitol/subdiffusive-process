@@ -67,6 +67,15 @@ with the manifest's SHA-256. Passing the hash as an input avoids a circular depe
 between a commit and a manifest that mentions it. The assets are read with the ordinary
 Actions token, which is not passed to the compiler or to the export sandbox.
 
+The workflow [`.github/workflows/prebuilt.yml`](.github/workflows/prebuilt.yml) (**Comparator
+inputs**, manual dispatch) produces the same inputs from the build that the CI workflow made of the
+same commit. It restores the Mathlib cache and the dependency and project builds that CI saved
+under the commit's key, fails unless `lake build --no-build` finds every module up to date (it
+compiles nothing), runs the `create` command above, uploads `manifest-COMMIT.json` and the chunks to
+the release whose tag `.github/prebuilt.json` records (an existing asset is never replaced; chunks
+already in the release are reused only when they are those of the new manifest), and prints the
+SHA-256 of the manifest in the job summary.
+
 To check a restore locally:
 
 ```bash
