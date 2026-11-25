@@ -10,6 +10,7 @@ public import SubdiffusiveProcess.Paper.Foundations.AuditExports.S10Extrema
 public import SubdiffusiveProcess.Paper.Foundations.AuditExports.S11Ellipticity
 public import SubdiffusiveProcess.Paper.Foundations.AuditExports.BoundaryIdentity
 public import SubdiffusiveProcess.Paper.Foundations.AuditExports.ResponseBankTranslations
+public import SubdiffusiveProcess.SDE.Cutoff
 public import SubdiffusiveProcess.Paper.Foundations.AuditExports.BaselineFiniteness
 public import SubdiffusiveProcess.Paper.Foundations.AuditExports.InfraredFamilyNeumann
 public import SubdiffusiveProcess.Paper.Foundations.AuditExports.NeumannResponseMoment
@@ -49,3 +50,5 @@ public import SubdiffusiveProcess.Paper.Foundations.AuditExports.AdditionalCondi
 #print axioms SubdiffusiveProcess.AuditExports.limiting_good_cell_witness_of_limits
 #print axioms SubdiffusiveProcess.AuditExports.limiting_good_cell_witness
 #print axioms SubdiffusiveProcess.AuditExports.additional_condition_witness
+#print axioms SubdiffusiveProcess.SDE.cutoff_solution_law
+#print axioms SubdiffusiveProcess.SDE.finiteDimensional_cutoff_path_kernel_solutionLaw

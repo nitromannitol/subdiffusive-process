@@ -137,10 +137,21 @@ which the paper takes for granted.
    this repository.
 3. **The formal process.** The diffusion `X` and its limit `Z` are the continuous Feller
    diffusions constructed from weak elliptic resolvents, described by their analytic path
-   laws. **The identification of `X` with the solution of the stochastic differential
-   equation `dX = ∇ log a(X) dt + √2 dW` is proved in the paper only and is not
-   formalized.** The Lean theorems make no statement about a Brownian motion `W` or an
-   Itô integral.
+   laws. The main theorems make no statement about a Brownian motion `W` or an Itô
+   integral. The identification of the cutoff diffusions with the solutions of the
+   stochastic differential equation `dX = ā_N⁻¹ ∇ψ_N(X) dt + √(2/ā_N) dW`, the form of
+   `dX = ∇ log a(X) dt + √2 dW` for the cutoff coefficient with its time normalization by
+   `ā_N`, is `SubdiffusiveProcess.SDE.cutoff_solution_law`: almost surely, for every `N`
+   and every starting point, the equation has a strong solution and every strong solution
+   has the cutoff path law. This theorem takes as hypotheses three standard results that
+   are not in mathlib, stated in
+   [`SubdiffusiveProcess/SDE/Inputs.lean`](SubdiffusiveProcess/SDE/Inputs.lean):
+   strong existence and pathwise uniqueness for a locally Lipschitz drift of linear growth
+   (`StrongSolutionExistsUnique`; Ikeda and Watanabe, Chapter IV, §§2–3, and Karatzas and
+   Shreve, Theorems 5.2.5 and 5.2.9), Itô's formula at the exit time of a ball
+   (`ItoFormulaStopped`; Karatzas and Shreve, Theorem 3.3.6 and Proposition 3.2.10), and
+   interior elliptic regularity (`InteriorEllipticRegularity`; Gilbarg and Trudinger,
+   Theorems 8.8 and 9.19). The main theorems do not use it.
 4. **Versions on null sets.** Theorem A uses versions defined in every environment. The
    limiting kernel is replaced by the law of a constant path on a measurable null set of
    environments, and a cutoff semigroup is the identity outside the probability-one event

@@ -80,7 +80,7 @@ theorem setIntegral_comp_add_eq_setIntegral_kernel (hIto : ItoFormulaStopped.{u}
   have hhm : Measurable h := hh.continuous.measurable
   have hXm : ∀ t, Measurable (X t) := fun t => (hX.adapted t).mono (ℱ.le t) le_rfl
   have hAm : MeasurableSet A := ℱ.le s A hA
-  haveI : ∀ t, IsFiniteKernel (Q t) := fun t =>
+  have : ∀ t, IsFiniteKernel (Q t) := fun t =>
     ⟨⟨1, ENNReal.one_lt_top, fun y => Q.measure_univ_le_one t y⟩⟩
   have hQb : ∀ t y, |∫ z, h z ∂(Q t y)| ≤ H := by
     intro t y

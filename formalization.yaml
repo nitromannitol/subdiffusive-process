@@ -195,8 +195,14 @@ fidelity:
     the moment order and the dimension, and Theorem B(2) throughout the model's own range.
     Local C^{1,1} regularity is part of the type of a potential, so it holds for every
     sample. The formal process is the continuous Feller diffusion constructed from weak
-    elliptic resolvents and described by its analytic path laws; the identification with
-    the solution of the stochastic differential equation is proved in the paper only.
+    elliptic resolvents and described by its analytic path laws; its identification with
+    the solution of the stochastic differential equation, for the cutoff diffusions, is
+    SubdiffusiveProcess.SDE.cutoff_solution_law, which takes three standard results not in
+    mathlib as hypotheses, stated in SubdiffusiveProcess/SDE/Inputs.lean with their
+    references: strong existence and uniqueness for a locally Lipschitz drift of linear
+    growth (Ikeda-Watanabe IV.2-3; Karatzas-Shreve 5.2.5, 5.2.9), Ito's formula at the exit
+    time of a ball (Karatzas-Shreve 3.3.6, 3.2.10) and interior elliptic regularity
+    (Gilbarg-Trudinger 8.8, 9.19). The main theorems do not use it.
     Theorem A uses versions defined in every environment (the limiting kernel is a
     constant-path law, and a cutoff semigroup is the identity, outside a probability-one
     event) with the paper's order of quantifiers. The cutoff process of index 0 is

@@ -47,10 +47,21 @@ find where each result is proved. The paper is included under [`paper/`](paper/)
    this repository.
 3. **The formal process.** The diffusion `X` and its limit `Z` are the continuous Feller
    diffusions constructed from weak elliptic resolvents, described by their analytic path
-   laws. **The identification of `X` with the solution of the stochastic differential
-   equation `dX = ∇ log a(X) dt + √2 dW` is proved in the paper only and is not
-   formalized.** The Lean theorems make no statement about a Brownian motion `W` or an
-   Itô integral.
+   laws. The main theorems make no statement about a Brownian motion `W` or an Itô
+   integral. The identification of the cutoff diffusions with the solutions of the
+   stochastic differential equation `dX = ā_N⁻¹ ∇ψ_N(X) dt + √(2/ā_N) dW`, the form of
+   `dX = ∇ log a(X) dt + √2 dW` for the cutoff coefficient with its time normalization by
+   `ā_N`, is `SubdiffusiveProcess.SDE.cutoff_solution_law`: almost surely, for every `N`
+   and every starting point, the equation has a strong solution and every strong solution
+   has the cutoff path law. This theorem takes as hypotheses three standard results that
+   are not in mathlib, stated in
+   [`SubdiffusiveProcess/SDE/Inputs.lean`](SubdiffusiveProcess/SDE/Inputs.lean):
+   strong existence and pathwise uniqueness for a locally Lipschitz drift of linear growth
+   (`StrongSolutionExistsUnique`; Ikeda and Watanabe, Chapter IV, §§2–3, and Karatzas and
+   Shreve, Theorems 5.2.5 and 5.2.9), Itô's formula at the exit time of a ball
+   (`ItoFormulaStopped`; Karatzas and Shreve, Theorem 3.3.6 and Proposition 3.2.10), and
+   interior elliptic regularity (`InteriorEllipticRegularity`; Gilbarg and Trudinger,
+   Theorems 8.8 and 9.19). The main theorems do not use it.
 4. **Versions on null sets.** Theorem A uses versions defined in every environment. The
    limiting kernel is replaced by the law of a constant path on a measurable null set of
    environments, and a cutoff semigroup is the identity outside the probability-one event
@@ -104,8 +115,9 @@ The process laws are characterized by their weak elliptic resolvents and by thei
 finite-dimensional distributions under the associated semigroups. This is the paper's
 defining analytic construction of the diffusions `X` and `X^(L)` and of the common-scale
 cutoff laws. The paper also shows that these laws are the laws of the solutions of the
-stochastic differential equation `dX = ∇ log a(X) dt + √2 dW`; that identification is
-outside the formally verified surface.
+stochastic differential equation `dX = ∇ log a(X) dt + √2 dW`; for the cutoff diffusions
+this identification is `SDE.cutoff_solution_law`, from the three cited inputs of
+`SDE/Inputs.lean` described above.
 
 The cutoff process of index `0` (`KN 0`) is clock-normalized: its generator is `ahom₀⁻¹` times
 the physical one. The physical rescaling uses the time factor
@@ -132,7 +144,7 @@ statement is the one compared by the independent challenge.
 | Paper | Lean declaration | Treatment |
 | --- | --- | --- |
 | `s.fixed.coefficient`, analytic construction of the diffusion and its Dirichlet form | `Paper.finiteDimensional_cutoff` and its semigroup and path-kernel results; `Paper.in_crossing` | Formalized: the diffusion is constructed from its weak elliptic resolvent. |
-| `s.fixed.coefficient`, interpretation as the solution of the stochastic differential equation; `e.fixed.clock.sde` | none | **Paper-only; not formalized.** |
+| `s.fixed.coefficient`, interpretation as the solution of the stochastic differential equation; `e.fixed.clock.sde` | `SDE.cutoff_solution_law`, from `SDE.setIntegral_comp_add_eq_setIntegral_kernel`, `SDE.map_restrict_eq_finiteTimeKernel_comp` and `SDE.map_solutionPath_eq` | Formalized for the cutoff diffusions, from three cited inputs stated in `SDE/Inputs.lean`: strong existence and uniqueness for a locally Lipschitz drift of linear growth, Itô's formula at the exit time of a ball, and interior elliptic regularity. The killed resolvents and Laplace inversion of the printed proof are replaced by the resolvent identity at `λ = n + 1` and the uniqueness of the Laplace transform. |
 
 ## All statements
 

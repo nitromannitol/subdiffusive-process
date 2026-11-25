@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require one exact standard-axiom report for each headline theorem and each audit-export theorem named in CORRESPONDENCE.md."""
+"""Require one exact standard-axiom report for each headline theorem, each audit-export theorem named in CORRESPONDENCE.md and each theorem identifying the cutoff diffusions with the solutions of the stochastic differential equation."""
 import pathlib
 import re
 import sys
@@ -41,6 +41,11 @@ audit_exports = {
     'SubdiffusiveProcess.AuditExports.theoremA_nongaussian',
 }
 expected |= audit_exports
+sde_identification = {
+    'SubdiffusiveProcess.SDE.cutoff_solution_law',
+    'SubdiffusiveProcess.SDE.finiteDimensional_cutoff_path_kernel_solutionLaw',
+}
+expected |= sde_identification
 standard = {'propext', 'Classical.choice', 'Quot.sound'}
 log = pathlib.Path(sys.argv[1]).read_text()
 if re.search(r'warning:|sorryAx|declaration uses .sorry', log, re.IGNORECASE):
@@ -56,4 +61,4 @@ for theorem, axioms in reports:
     seen.add(theorem)
 if seen != expected:
     raise SystemExit('Missing axiom reports: ' + ', '.join(sorted(expected - seen)))
-print('Headline A, precise A, B and C and the %d theorems of the audit exports use exactly propext, Classical.choice and Quot.sound.' % len(audit_exports))
+print('Headline A, precise A, B and C, the %d theorems of the audit exports and the %d theorems identifying the cutoff diffusions with the solutions of the stochastic differential equation use exactly propext, Classical.choice and Quot.sound.' % (len(audit_exports), len(sde_identification)))
