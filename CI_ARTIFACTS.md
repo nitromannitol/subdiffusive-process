@@ -68,13 +68,15 @@ between a commit and a manifest that mentions it. The assets are read with the o
 Actions token, which is not passed to the compiler or to the export sandbox.
 
 The workflow [`.github/workflows/prebuilt.yml`](.github/workflows/prebuilt.yml) (**Comparator
-inputs**, manual dispatch) produces the same inputs from the build that the CI workflow made of the
+inputs**; after each successful CI run on `main`, and on manual dispatch) produces the same inputs from the build that the CI workflow made of the
 same commit. It restores the Mathlib cache and the dependency and project builds that CI saved
 under the commit's key, fails unless `lake build --no-build` finds every module up to date (it
 compiles nothing), runs the `create` command above, uploads `manifest-COMMIT.json` and the chunks to
 the release whose tag `.github/prebuilt.json` records (an existing asset is never replaced; chunks
 already in the release are reused only when they are those of the new manifest), and prints the
-SHA-256 of the manifest in the job summary.
+SHA-256 of the manifest in the job summary. When the commit is still the head of `main`, it then starts
+the comparator workflow with that SHA-256. After a change of the Lean sources it stops at its first step,
+which prints the tag and the source key to record in `.github/prebuilt.json` in a new commit.
 
 To check a restore locally:
 

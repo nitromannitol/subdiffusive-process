@@ -7,12 +7,21 @@ name: Comparator inputs
 # fails on any out-of-date module), packs it with `scripts/prebuilt_artifacts.py create`, and
 # uploads `manifest-<commit>.json` and the archive chunks to the release whose tag
 # `.github/prebuilt.json` records. Existing assets are never replaced. The last step prints the
-# SHA-256 of the manifest, the input of the comparator workflow.
+# SHA-256 of the manifest, the input of the comparator workflow. It runs after each successful CI run on
+# main, for the commit that CI built, and on manual dispatch; when that commit is still the head of main,
+# it then starts the comparator workflow with that SHA-256. The release must be the one of the current
+# sources: after a change of the Lean sources, record in `.github/prebuilt.json` a new tag and the new
+# source key, which the "Check the release record" step prints.
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,13 +30,32 @@ concurrency:
 jobs:
   package:
     name: Pack the CI build of this commit
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          ref: ${{ env.SHA }}
           persist-credentials: false
+
+      - name: Check the release record
+        shell: bash
+        run: |
+          python3 -I - <<'PYKEY'
+          import json, sys
+          sys.path.insert(0, 'scripts')
+          import prebuilt_artifacts as pa
+          key = pa.input_key(pa.inputs('.'))
+          record = json.load(open('.github/prebuilt.json'))
+          if record.get('source_key') != key:
+              raise SystemExit('The sources changed: record in .github/prebuilt.json the tag ci-prebuilt-'
+                               + key[:16] + ' and the source_key ' + key + '.')
+          print('The release record matches the sources: ' + record['tag'])
+          PYKEY
 
       - name: Reclaim runner disk space
         shell: bash
@@ -58,7 +86,7 @@ jobs:
         uses: actions/cache/restore@v6.1.0
         with:
           path: .lake/build
-          key: lake-proj-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-${{ github.sha }}
+          key: lake-proj-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-${{ env.SHA }}
           fail-on-cache-miss: true
 
       - name: Require a complete build
@@ -71,7 +99,7 @@ jobs:
           command -v zstd >/dev/null || { sudo apt-get update -qq; sudo apt-get install -y zstd; }
           python3 scripts/prebuilt_artifacts.py create --root . \
             --project-build .lake/build --packages .lake/packages --output "$RUNNER_TEMP/prebuilt"
-          cp "$RUNNER_TEMP/prebuilt/manifest.json" "$RUNNER_TEMP/prebuilt/manifest-${GITHUB_SHA}.json"
+          cp "$RUNNER_TEMP/prebuilt/manifest.json" "$RUNNER_TEMP/prebuilt/manifest-${SHA}.json"
           df -h /
 
       - name: Upload the manifest and the chunks to the release
@@ -82,13 +110,13 @@ jobs:
           set -euo pipefail
           tag=$(python3 -c 'import json; print(json.load(open(".github/prebuilt.json"))["tag"])')
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease --target "$SHA" \
               --title "Comparator build inputs ${tag#ci-prebuilt-}" \
               --notes "Source-bound build transport for independent kernel replay (CI_ARTIFACTS.md)."
           fi
           existing=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
-          if grep -qxF "manifest-${GITHUB_SHA}.json" <<<"$existing"; then
-            echo "manifest-${GITHUB_SHA}.json is already an asset of $tag; nothing is uploaded."
+          if grep -qxF "manifest-${SHA}.json" <<<"$existing"; then
+            echo "manifest-${SHA}.json is already an asset of $tag; nothing is uploaded."
             exit 0
           fi
           cd "$RUNNER_TEMP/prebuilt"
@@ -105,9 +133,9 @@ jobs:
               raise SystemExit('The release holds the chunks of a different build; record a new tag in .github/prebuilt.json.')
           print('The chunks in the release are those of this manifest.')
           PYSAME
-            gh release upload "$tag" "manifest-${GITHUB_SHA}.json" --repo "$GITHUB_REPOSITORY"
+            gh release upload "$tag" "manifest-${SHA}.json" --repo "$GITHUB_REPOSITORY"
           else
-            gh release upload "$tag" "manifest-${GITHUB_SHA}.json" prebuilt.tar.zst.part* --repo "$GITHUB_REPOSITORY"
+            gh release upload "$tag" "manifest-${SHA}.json" prebuilt.tar.zst.part* --repo "$GITHUB_REPOSITORY"
           fi
 
       - name: Verify the release assets against the manifest
@@ -119,8 +147,8 @@ jobs:
           tag=$(python3 -c 'import json; print(json.load(open(".github/prebuilt.json"))["tag"])')
           mkdir -p "$RUNNER_TEMP/check"
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/check" \
-            --pattern "manifest-${GITHUB_SHA}.json"
-          python3 - "$RUNNER_TEMP/check/manifest-${GITHUB_SHA}.json" "$tag" <<'PYCHECK'
+            --pattern "manifest-${SHA}.json"
+          python3 - "$RUNNER_TEMP/check/manifest-${SHA}.json" "$tag" <<'PYCHECK'
           import json, os, subprocess, sys
           manifest = json.load(open(sys.argv[1]))
           assets = json.loads(subprocess.check_output(
@@ -132,5 +160,23 @@ jobs:
                   raise SystemExit('Release asset differs from the manifest: ' + chunk['name'])
           print('Every chunk of the manifest is a release asset of the recorded size.')
           PYCHECK
-          echo "artifact_manifest_sha256: $(sha256sum "$RUNNER_TEMP/check/manifest-${GITHUB_SHA}.json" | cut -d' ' -f1)" \
+          echo "artifact_manifest_sha256: $(sha256sum "$RUNNER_TEMP/check/manifest-${SHA}.json" | cut -d' ' -f1)" \
             | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The comparator checks the head of the branch it is started on, so it is started only when the
+      # packed commit is still the head of main.
+      - name: Start the comparator workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          sum=$(sha256sum "$RUNNER_TEMP/check/manifest-${SHA}.json" | cut -d' ' -f1)
+          if [ "$head" = "$SHA" ]; then
+            gh workflow run comparator.yml --repo "$GITHUB_REPOSITORY" --ref main \
+              -f artifact_manifest_sha256="$sum" -f pairs=all
+            echo "Comparator audit started for $SHA." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "main has moved to $head; the comparator is not started for $SHA." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
