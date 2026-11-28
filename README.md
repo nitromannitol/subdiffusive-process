@@ -9,10 +9,16 @@ A machine-checked **Lean 4** formalization of the paper
 > *Anomalous scaling limit of a Brownian particle in a log-correlated potential*
 > (preprint forthcoming).
 
+The paper studies a Brownian particle in `ℝᵈ`, `d ≥ 2`, driven by the gradient of a
+log-correlated random potential of small strength. It proves that the particle is
+subdiffusive and that its rescaled motion converges to a singular, non-Gaussian diffusion.
+The three main theorems of the paper are proved, in the form in which its introduction
+states them, **for every random environment that satisfies the paper's standing
+assumptions**. Nothing else is assumed: everything they use, including the facts the paper
+cites from the literature, is in mathlib or in the two libraries below, or is proved here.
+
 The paper's source, bibliography, figures and compiled PDF are included under
-[`paper/`](paper/). The three main theorems of the paper are proved, in the form in
-which its introduction states them, **for every random environment that satisfies the
-paper's standing assumptions**.
+[`paper/`](paper/).
 
 The development is built on [mathlib](https://github.com/leanprover-community/mathlib4)
 and on two public libraries:
@@ -21,10 +27,10 @@ homogenization library of Armstrong and Kuusi, and
 [MarkovProcess](https://github.com/scottnarmstrong/MarkovProcess), a library of
 continuous-time Markov processes and Feller semigroups.
 
-## What is proved
+## The paper
 
-The paper studies a Brownian particle in `ℝᵈ`, `d ≥ 2`, whose drift is the gradient of a
-log-correlated random potential:
+The particle moves in `ℝᵈ`, `d ≥ 2`, and its drift is the gradient of a log-correlated
+random potential:
 
 > `dX = ∇ log a(X) dt + √2 dW`,  `a(x) = exp(Σₖ (γₖ(x) − γₖ(0)))`.
 
@@ -34,17 +40,7 @@ size at every scale. The size is set by a small parameter `δ`, the *disorder st
 Keeping only the fields `γ₀, …, γ_L` gives the *infrared cutoff* coefficient `a_L`, whose
 homogenized (effective) diffusivity `ahom_L` decreases as a power of the scale `3^L`.
 So the particle is subdiffusive: the time to travel a distance `r` grows faster than `r²`.
-The model is stated precisely in [Standing assumptions and scope](#standing-assumptions-and-scope).
-
-The three main results, formalized as stated in the introduction of the paper, are
-collected in [`SubdiffusiveProcess/MainTheorems.lean`](SubdiffusiveProcess/MainTheorems.lean).
-
-| Paper | Lean declaration | Content |
-| --- | --- | --- |
-| Theorem A (label `t.A`) | `SubdiffusiveProcess.process_convergence` | The rescaled particle converges to a singular, non-Gaussian diffusion with anomalous exit times. |
-| Theorem A, precise form (label `t.scaling.limit`) | `SubdiffusiveProcess.process_convergence_precise` | The stronger quenched form from which Theorem A follows. |
-| Theorem B (label `t.B`) | `SubdiffusiveProcess.quantitative_homogenization` | Quantitative homogenization of the Dirichlet problem, uniformly in the cutoff. |
-| Theorem C (label `t.C`) | `SubdiffusiveProcess.anomalous_holder_regularity` | Large-scale Hölder regularity with exponent close to one, and a Liouville theorem. |
+The model is stated precisely in [Scope](#scope).
 
 **Theorem A (scaling limit, `t.A`).** Let `d ≥ 2`. There is `δ₀(d) > 0` such that, for every
 model with `0 < δ ≤ δ₀`, there is a continuous strong Markov process `Z` on `ℝᵈ` in the
@@ -65,9 +61,6 @@ random environment, with quenched laws `Pₓ` when started at `x`, such that:
 4. *Non-Gaussian marginals.* Almost surely, for every `x` and `t > 0`, the law of `Z_t` is
    absolutely continuous with respect to `μ` and is not Gaussian.
 
-In Lean, `Z` is given by a continuous Markov kernel from (environment, starting point) to
-continuous paths that has the strong Markov property at stopping times of the usual
-augmentation, and the pre-limit processes are fixed by their weak elliptic resolvents.
 The *precise form* (`t.scaling.limit`) gives more: in one common environment, almost
 surely, the path laws of the rescaled processes converge weakly uniformly over starting
 points in compact sets; the reversible measures converge locally weakly to a non-atomic,
@@ -97,9 +90,6 @@ measures the difference of solutions, gradients and fluxes.
    `D_{L,M} ≤ Y_{L,q} 3^(−α_hom (M−L)) (‖f‖_{L²} + ‖h‖_{H²})`.
    No smallness of `δ` is needed here beyond the model's own range `δ ≤ ½`.
 
-The Lean statement also asserts that the two Dirichlet problems have unique weak solutions,
-which the paper takes for granted.
-
 **Theorem C (large-scale Hölder regularity and a Liouville theorem, `t.C`).** There are
 `δ₀(d) > 0`, `C₀(d)` and `C(d)` such that, for `δ ≤ δ₀`, with
 `γ_reg = 1 − C₀ δ √|log δ|`, and with `L` ranging over `ℕ ∪ {∞}` (where `a_∞ = a`):
@@ -115,7 +105,44 @@ which the paper takes for granted.
 2. *Liouville theorem.* Almost surely, for every `L`, every `a_L`-harmonic function on `ℝᵈ`
    with `liminf_{R→∞} R^(−γ_reg) inf_c ‖u − c‖_{L²(B_R)} = 0` is constant.
 
-## Standing assumptions and scope
+## The main theorems in Lean
+
+The three main results, formalized as stated in the introduction of the paper, are
+collected in [`SubdiffusiveProcess/MainTheorems.lean`](SubdiffusiveProcess/MainTheorems.lean).
+
+| Paper | Lean declaration | Content |
+| --- | --- | --- |
+| Theorem A (label `t.A`) | `SubdiffusiveProcess.process_convergence` | The rescaled particle converges to a singular, non-Gaussian diffusion with anomalous exit times. |
+| Theorem A, precise form (label `t.scaling.limit`) | `SubdiffusiveProcess.process_convergence_precise` | The stronger quenched form from which Theorem A follows. |
+| Theorem B (label `t.B`) | `SubdiffusiveProcess.quantitative_homogenization` | Quantitative homogenization of the Dirichlet problem, uniformly in the cutoff. |
+| Theorem C (label `t.C`) | `SubdiffusiveProcess.anomalous_holder_regularity` | Large-scale Hölder regularity with exponent close to one, and a Liouville theorem. |
+
+How to read the statements: in Lean, `Z` is given by a continuous Markov kernel from
+(environment, starting point) to continuous paths that has the strong Markov property at
+stopping times of the usual augmentation, and the pre-limit processes are fixed by their weak
+elliptic resolvents. The Lean statement of Theorem B also asserts that the two Dirichlet
+problems have unique weak solutions, which the paper takes for granted.
+
+## What is assumed
+
+Nothing, for the main theorems. One further theorem identifies the cutoff diffusions with
+the solutions of the stochastic differential equation
+`dX = ā_N⁻¹ ∇ψ_N(X) dt + √(2/ā_N) dW`, the form of `dX = ∇ log a(X) dt + √2 dW` for the
+cutoff coefficient with its time normalization by `ā_N`. This is
+`SubdiffusiveProcess.SDE.cutoff_solution_law`: almost surely, for every `N` and every starting
+point, the equation has a strong solution and every strong solution has the cutoff path law.
+The main theorems do not use it. It takes as hypotheses three standard results that are not
+in mathlib, stated in [`SubdiffusiveProcess/SDE/Inputs.lean`](SubdiffusiveProcess/SDE/Inputs.lean):
+
+- strong existence and pathwise uniqueness for a locally Lipschitz drift of linear growth
+  (Ikeda and Watanabe, Chapter IV, §§2–3, and Karatzas and Shreve, Theorems 5.2.5 and 5.2.9),
+  `StrongSolutionExistsUnique`;
+- Itô's formula at the exit time of a ball (Karatzas and Shreve, Theorem 3.3.6 and
+  Proposition 3.2.10), `ItoFormulaStopped`;
+- interior elliptic regularity (Gilbarg and Trudinger, Theorems 8.8 and 9.19),
+  `InteriorEllipticRegularity`.
+
+## Scope
 
 1. **Every theorem is about every model.** The
    theorems hold for every `GMCModel d` (`SubdiffusiveProcess.Model.GMCModel`) with `d ≥ 2`
@@ -130,41 +157,23 @@ which the paper takes for granted.
    signed coordinate permutations and under `γ₀ ↦ −γ₀`; (g4) `τ² = log E exp γ₀(0) > 0`.
    The local `C¹ˑ¹` regularity is part of the type of a potential, so it holds for every
    sample and not only almost surely.
-2. **Axioms and incomplete proofs.** The library contains no `sorry`, no `admit`, no
-   `native_decide` and no new `axiom`. The axiom report of each main theorem consists of
-   exactly `propext`, `Classical.choice` and `Quot.sound`. The main theorems rely on no
-   unproved result: everything they use, including the facts the paper cites from the
-   literature, is available in mathlib, CoarseGraining or MarkovProcess, or is proved in
-   this repository.
-3. **The formal process.** The diffusion `X` and its limit `Z` are the continuous Feller
+2. **The formal process.** The diffusion `X` and its limit `Z` are the continuous Feller
    diffusions constructed from weak elliptic resolvents, described by their analytic path
    laws. The main theorems make no statement about a Brownian motion `W` or an Itô
-   integral. The identification of the cutoff diffusions with the solutions of the
-   stochastic differential equation `dX = ā_N⁻¹ ∇ψ_N(X) dt + √(2/ā_N) dW`, the form of
-   `dX = ∇ log a(X) dt + √2 dW` for the cutoff coefficient with its time normalization by
-   `ā_N`, is `SubdiffusiveProcess.SDE.cutoff_solution_law`: almost surely, for every `N`
-   and every starting point, the equation has a strong solution and every strong solution
-   has the cutoff path law. This theorem takes as hypotheses three standard results that
-   are not in mathlib, stated in
-   [`SubdiffusiveProcess/SDE/Inputs.lean`](SubdiffusiveProcess/SDE/Inputs.lean):
-   strong existence and pathwise uniqueness for a locally Lipschitz drift of linear growth
-   (`StrongSolutionExistsUnique`; Ikeda and Watanabe, Chapter IV, §§2–3, and Karatzas and
-   Shreve, Theorems 5.2.5 and 5.2.9), Itô's formula at the exit time of a ball
-   (`ItoFormulaStopped`; Karatzas and Shreve, Theorem 3.3.6 and Proposition 3.2.10), and
-   interior elliptic regularity (`InteriorEllipticRegularity`; Gilbarg and Trudinger,
-   Theorems 8.8 and 9.19). The main theorems do not use it.
-4. **Versions on null sets.** Theorem A uses versions defined in every environment. The
+   integral; the identification with the stochastic differential equation is described in
+   [What is assumed](#what-is-assumed).
+3. **Versions on null sets.** Theorem A uses versions defined in every environment. The
    limiting kernel is replaced by the law of a constant path on a measurable null set of
    environments, and a cutoff semigroup is the identity outside the probability-one event
    on which it is built. This preserves every almost-sure statement. The order of
    quantifiers is as in the paper: "for every `x`, almost surely" allows the null set to
    depend on `x`, while "almost surely, for every `x`" gives one common event.
-5. **Clock normalization.** The cutoff process of index `0` in the convergence statement
+4. **Clock normalization.** The cutoff process of index `0` in the convergence statement
    (`KN 0`) is clock-normalized: its generator is `ahom₀⁻¹` times the physical one. The
    physical rescaling therefore uses the time factor
    `T_N = ahom₀ · 3^(2N) / ahom_N` (`physicalTimeFactor`), and the factor `ahom₀` cancels
    the normalization, giving the paper's clock `3^(2N) / ahom_N`.
-6. **Norms and conventions.** Cubes and balls use the sup norm; quadratic energies use the
+5. **Norms and conventions.** Cubes and balls use the sup norm; quadratic energies use the
    Euclidean norm. In Theorem B, the negative norms are the volume-normalized, componentwise
    duals of `H¹₀` (tests vanish on the boundary), and the `H²` norm of the boundary datum is
    the sum of the `L²` sizes of the function, its gradient and its Hessian; another
@@ -172,12 +181,12 @@ which the paper takes for granted.
    defined as the infimum, over the cubes `□_n` of side `3ⁿ`, of the normalized trace of the
    expected coarse-grained matrix of `a_m` on `□_n`; this equals the paper's limit as
    `n → ∞` because that sequence is nonincreasing.
-7. **Scope of the Liouville theorem.** Theorem C gives large-scale oscillation and
+6. **Scope of the Liouville theorem.** Theorem C gives large-scale oscillation and
    weighted-energy bounds above a random minimal scale, and a Liouville theorem for entire
    weakly harmonic functions whose normalized `L²` oscillation has subcritical `liminf`
    growth. Its conclusion is a constant continuous representative of the weak solution.
    It makes no claim about pointwise Hölder regularity at microscopic scales.
-8. **Total real-valued definitions.** Lean's real-valued definitions are total: division by
+7. **Total real-valued definitions.** Lean's real-valued definitions are total: division by
    zero, `Real.log 0`, a non-integrable integral and a non-summable series all have
    conventional values, `ENNReal.toReal ∞ = 0`, and a supremum or infimum over an empty
    set is `0`. Analytic conclusions therefore come with the positivity, finiteness,
@@ -185,31 +194,34 @@ which the paper takes for granted.
    Where a process has been killed, that is, sent to a cemetery point, the
    lifetime-value function returns the starting point; this is only a convention that
    makes the function total.
-9. **Explicit versus implicit.** Some statements make explicit what the paper leaves
+8. **Explicit versus implicit.** Some statements make explicit what the paper leaves
    implicit, for example measurability of the random variables, or existence and
    uniqueness of the weak Dirichlet solutions in Theorem B. Some intermediate lemmas repeat
    hypotheses that the model already contains (such as `d ≥ 2` or `δ > 0`); they do not
    narrow the class of models.
-10. **Statements without a formal counterpart.** Statements of the paper without a formal
-    counterpart in this repository, besides the identification with the stochastic
-    differential equation: none. The correspondence table in
-    `CORRESPONDENCE.md` maps 160 statements and passages of the paper to Lean
-    declarations; an entry names the declaration that formalizes a statement, and a statement
-    without one is marked **Paper-only**. For some passages the section *Audit exports* of
-    that file names further declarations that state the passage in the form in which the
-    paper does. The independent comparator check below covers the statements of the main
-    theorems themselves.
+9. **Statements without a formal counterpart.** Statements of the paper without a formal
+   counterpart in this repository, besides the identification with the stochastic
+   differential equation: none. The correspondence table in
+   [`CORRESPONDENCE.md`](CORRESPONDENCE.md) maps 160 statements and passages of the paper to
+   Lean declarations; an entry names the declaration that formalizes a statement, and a
+   statement without one would be marked **Paper-only** (no entry is). For some passages the
+   section *Audit exports* of that file names further declarations that state the passage in
+   the form in which the paper does. The independent comparator check below covers the
+   statements of the main theorems themselves.
 
-## Guarantees
+## Checking the proofs
 
-- **No `sorry`.** The library has none. The three comparator challenges under
+- **No `sorry`.** The library contains no `sorry`, no `admit`, no `native_decide` and no new
+  `axiom`. The three comparator challenges under
   [`SubdiffusiveProcessAudit/`](SubdiffusiveProcessAudit/) each contain one intentional
   statement-level `sorry`, which the corresponding solution proves.
-- **Standard axioms only.** The axiom report of each of the 4 main
-  theorems lists exactly `propext`, `Classical.choice` and `Quot.sound`, and so does that of every theorem of the
-  [audit exports](CORRESPONDENCE.md#audit-exports) that is named there by its full name.
+- **Standard axioms only.** The axiom report of each of the 4 main theorems lists exactly
+  `propext`, `Classical.choice` and `Quot.sound`. So does that of each of the 27 theorems of
+  the [audit exports](CORRESPONDENCE.md#audit-exports) named there by its full name, and of
+  the 2 theorems that identify the cutoff diffusions with the solutions of the stochastic
+  differential equation.
   [`SubdiffusiveProcess/Meta/AxiomsAudit.lean`](SubdiffusiveProcess/Meta/AxiomsAudit.lean)
-  prints the reports, and `scripts/check_axioms.py` fails on any other axiom, on `sorryAx`,
+  prints these 33 reports, and `scripts/check_axioms.py` fails on any other axiom, on `sorryAx`,
   on a missing or an unexpected report.
 - **No warnings.** `lake build` compiles the library with no warnings and no errors, and the
   continuous-integration build rejects any warning.
@@ -226,8 +238,14 @@ which the paper takes for granted.
   (see [Building](#building)).
 - **The paper is part of the repository.** The statement map refers to the version in
   [`paper/`](paper/), pinned to `6532069f529ce5e4499526a1267309c7db9dee22`.
-
-## Size
+- **Continuous integration.** There are three workflows. **CI** builds the library and
+  checks the axiom reports; it runs on pushes to `main` that change code or build
+  configuration. After each successful CI run on `main`, **Comparator inputs** packs that
+  build as the prebuilt inputs of the comparator and, if the commit is still the head of
+  `main`, starts **Comparator audit**, which checks all three challenge/solution pairs. All
+  three can be started manually from the
+  [Actions page](https://github.com/nitromannitol/subdiffusive-process/actions); the
+  comparator workflow then takes the SHA-256 of the manifest of the prebuilt inputs.
 
 The library contains 5,891 Lean files with 1,594,093 physical lines,
 on top of mathlib, CoarseGraining and MarkovProcess. The comparator sources are counted
@@ -284,16 +302,8 @@ To run all three pairs locally with the tools bundled with the pinned Lean toolc
 This needs `bubblewrap` and, on Linux, a memory-mapping limit of at least 131072
 (`sudo sysctl -w vm.max_map_count=262144`). Logs are kept under `.lake/comparator-logs/`.
 The [comparator workflow](.github/workflows/comparator.yml) runs the same checks on
-GitHub-hosted runners, one job per pair; see [`CI_ARTIFACTS.md`](CI_ARTIFACTS.md).
-
-There are three continuous-integration workflows. **CI** builds the library and checks the
-axiom reports; it runs on pushes to `main` that change code or build configuration. After each
-successful CI run on `main`, **Comparator inputs** packs that build as the prebuilt inputs of
-the comparator and, if the commit is still the head of `main`, starts **Comparator audit**,
-which checks all three challenge/solution pairs. All three can be started manually from the
-[Actions page](https://github.com/nitromannitol/subdiffusive-process/actions); the comparator
-workflow then takes the SHA-256 of the manifest of the prebuilt inputs.
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build conventions.
+GitHub-hosted runners, one job per pair; see [`CI_ARTIFACTS.md`](CI_ARTIFACTS.md). See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for build conventions.
 
 ## Repository layout
 
