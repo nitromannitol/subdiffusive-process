@@ -1,5 +1,8 @@
 # Anomalous scaling limit of a Brownian particle in a log-correlated potential
 
+[![CI](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml)
+[![Comparator audit](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/comparator.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/comparator.yml)
+
 A machine-checked **Lean 4** formalization of the paper
 
 > Scott Armstrong, Ahmed Bou-Rabee and Tuomo Kuusi,
@@ -18,8 +21,6 @@ homogenization library of Armstrong and Kuusi, and
 [MarkovProcess](https://github.com/scottnarmstrong/MarkovProcess), a library of
 continuous-time Markov processes and Feller semigroups.
 
-[![CI](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/build.yml)
-[![Comparator audit](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/comparator.yml/badge.svg?branch=main)](https://github.com/nitromannitol/subdiffusive-process/actions/workflows/comparator.yml)
 ## What is proved
 
 The paper studies a Brownian particle in `ℝᵈ`, `d ≥ 2`, whose drift is the gradient of a
@@ -210,10 +211,8 @@ which the paper takes for granted.
   [`SubdiffusiveProcess/Meta/AxiomsAudit.lean`](SubdiffusiveProcess/Meta/AxiomsAudit.lean)
   prints the reports, and `scripts/check_axioms.py` fails on any other axiom, on `sorryAx`,
   on a missing or an unexpected report.
-- **Builds from a clean checkout.** `lake build` of this tree, in a fresh build directory,
-  compiled 16,405 jobs with 0 warnings and no errors, and a fresh
-  clone of the repository builds in the same way. The continuous-integration build rejects
-  any warning.
+- **No warnings.** `lake build` compiles the library with no warnings and no errors, and the
+  continuous-integration build rejects any warning.
 - **Independent check of the statements.** Theorems A, B and C are restated in
   [`SubdiffusiveProcessAudit/`](SubdiffusiveProcessAudit/) using mathlib alone, one
   challenge file per theorem. The solution file proves each restatement from the library,
@@ -230,7 +229,7 @@ which the paper takes for granted.
 
 ## Size
 
-The library contains 5,884 Lean files with 1,592,483 physical lines,
+The library contains 5,891 Lean files with 1,594,093 physical lines,
 on top of mathlib, CoarseGraining and MarkovProcess. The comparator sources are counted
 separately.
 
@@ -287,10 +286,13 @@ This needs `bubblewrap` and, on Linux, a memory-mapping limit of at least 131072
 The [comparator workflow](.github/workflows/comparator.yml) runs the same checks on
 GitHub-hosted runners, one job per pair; see [`CI_ARTIFACTS.md`](CI_ARTIFACTS.md).
 
-There are two continuous-integration workflows: **CI** builds the library and checks the
-axiom reports; **Comparator audit** checks all three challenge/solution pairs. CI runs on
-pushes to `main` that change code or build configuration. Both workflows can be started
-manually from the [Actions page](https://github.com/nitromannitol/subdiffusive-process/actions).
+There are three continuous-integration workflows. **CI** builds the library and checks the
+axiom reports; it runs on pushes to `main` that change code or build configuration. After each
+successful CI run on `main`, **Comparator inputs** packs that build as the prebuilt inputs of
+the comparator and, if the commit is still the head of `main`, starts **Comparator audit**,
+which checks all three challenge/solution pairs. All three can be started manually from the
+[Actions page](https://github.com/nitromannitol/subdiffusive-process/actions); the comparator
+workflow then takes the SHA-256 of the manifest of the prebuilt inputs.
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for build conventions.
 
 ## Repository layout
